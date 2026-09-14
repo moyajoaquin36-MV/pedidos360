@@ -1,0 +1,26 @@
+<header>
+  <h1>Pedidos 360</h1>
+  <button type="button" (click)="cerrarSesion()">Cerrar sesion</button>
+</header>
+
+<section *ngIf="cuenta">
+  <h2>Sesion iniciada</h2>
+  <p>Usuario: {{ cuenta.name }} ({{ cuenta.username }})</p>
+  <p>Roles asignados (claim "roles" del token de Azure AD):</p>
+  <ul>
+    <li *ngFor="let rol of roles">{{ rol }}</li>
+    <li *ngIf="roles.length === 0">(sin app roles asignados todavia en Azure AD)</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Pedidos (via API Gateway -> ms-pedidos)</h2>
+  <p *ngIf="cargando">Consultando...</p>
+  <p *ngIf="errorPedidos" class="error">{{ errorPedidos }}</p>
+  <ul *ngIf="!cargando && !errorPedidos">
+    <li *ngFor="let pedido of pedidos">
+      #{{ pedido.id }} - {{ pedido.estado }} - {{ pedido.localId }} - {{ pedido.total | currency: 'CLP' }}
+    </li>
+    <li *ngIf="pedidos.length === 0">Sin pedidos registrados aun.</li>
+  </ul>
+</section>
