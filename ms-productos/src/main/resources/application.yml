@@ -1,0 +1,26 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: ms-productos
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:pedidos360}?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+    username: ${DB_USERNAME:pedidos360}
+    password: ${DB_PASSWORD:pedidos360}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+
+# Datos del tenant de Azure AD (Entra ID). Reemplazar por los valores reales
+# una vez creado el tenant (ver guia "Creacion de tenant") y registrada la app.
+azure:
+  ad:
+    tenant-id: ${AZURE_TENANT_ID:00000000-0000-0000-0000-000000000000}
+    client-id: ${AZURE_CLIENT_ID:00000000-0000-0000-0000-000000000000}
+
+logging:
+  level:
+    org.springframework.security: INFO
