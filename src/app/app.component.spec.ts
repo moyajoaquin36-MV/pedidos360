@@ -1,12 +1,19 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { MsalService } from '@azure/msal-angular';
 import { AppComponent } from './app.component';
+
+class MsalServiceStub {
+  instance = {
+    getActiveAccount: () => null
+  };
+}
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [provideRouter([])]
+      providers: [provideRouter([]), { provide: MsalService, useClass: MsalServiceStub }]
     }).compileComponents();
   });
 

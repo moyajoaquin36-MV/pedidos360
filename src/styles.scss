@@ -1,33 +1,38 @@
-/* Estilos globales minimos, suficientes para que las vistas sean legibles. */
+/* Estilos globales. Paleta inspirada en panaderia/cafeteria: cremas, dorado y un
+   marron profundo para el pie de pagina, siguiendo la identidad de "Pedidos 360". */
+
+:root {
+  --crema: #faf6f1;
+  --texto: #2b2320;
+  --dorado: #d97b29;
+  --dorado-oscuro: #b6621d;
+  --marron: #3a201a;
+  --borde: #e7dccd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   font-family: system-ui, sans-serif;
   margin: 0;
-  background: #faf6f1;
-  color: #2b2320;
+  background: var(--crema);
+  color: var(--texto);
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background: #d97b29;
-  color: white;
+main {
+  display: block;
+  min-height: calc(100vh - 220px);
 }
 
-header h1 {
-  margin: 0;
-  font-size: 1.25rem;
+h1, h2, h3 {
+  margin: 0 0 0.5rem;
 }
 
-section {
-  padding: 1rem 2rem;
-}
-
-.login {
-  max-width: 480px;
-  margin: 4rem auto;
-  text-align: center;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 button {
@@ -35,11 +40,405 @@ button {
   border: none;
   border-radius: 6px;
   padding: 0.5rem 1rem;
-  background: #d97b29;
+  background: var(--dorado);
   color: white;
   font-size: 0.95rem;
 }
 
+button:hover {
+  background: var(--dorado-oscuro);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .error {
   color: #b3261e;
+}
+
+/* ---------- Header ---------- */
+
+.topbar {
+  background: #f4c542;
+  color: #3a2c00;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem;
+  letter-spacing: 0.02em;
+}
+
+.header-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 2rem;
+  background: white;
+  border-bottom: 1px solid var(--borde);
+  position: relative;
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 1.3rem;
+  color: var(--marron);
+  letter-spacing: 0.02em;
+}
+
+.logo span {
+  color: var(--dorado);
+}
+
+.local-selector {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  color: #6b5c4f;
+  gap: 0.15rem;
+}
+
+.local-selector select {
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--borde);
+  font-size: 0.9rem;
+  max-width: 240px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.9rem;
+  color: #5a4a3d;
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.icon-btn {
+  position: relative;
+  background: transparent;
+  color: var(--marron);
+  border-radius: 999px;
+  padding: 0.5rem;
+  display: inline-flex;
+}
+
+.icon-btn:hover {
+  background: var(--crema);
+}
+
+.badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--dorado);
+  color: white;
+  font-size: 0.65rem;
+  border-radius: 999px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.menu-wrapper {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  background: white;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 0.75rem 1rem;
+  min-width: 220px;
+  z-index: 20;
+}
+
+.dropdown-title {
+  font-weight: 600;
+  margin: 0;
+}
+
+.dropdown-sub {
+  font-size: 0.8rem;
+  color: #6b5c4f;
+  margin: 0 0 0.5rem;
+}
+
+.cart-dropdown ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dropdown-total {
+  font-weight: 700;
+  margin: 0;
+}
+
+.dropdown-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dorado-oscuro);
+}
+
+.dropdown-link:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Login ---------- */
+
+.login {
+  max-width: 560px;
+  margin: 5rem auto;
+  text-align: center;
+  padding: 0 1.5rem;
+}
+
+.login p {
+  color: #5a4a3d;
+  line-height: 1.5;
+}
+
+/* ---------- Home: hero + roles ---------- */
+
+.hero {
+  padding: 2rem 2rem 1rem;
+}
+
+.roles-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #5a4a3d;
+}
+
+.tag {
+  background: var(--marron);
+  color: white;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.tag-muted {
+  background: #cbbfae;
+  color: #3a2c1f;
+}
+
+/* ---------- Como funciona ---------- */
+
+.como-funciona {
+  padding: 0.5rem 2rem 1.5rem;
+}
+
+.como-funciona ol {
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: #5a4a3d;
+}
+
+/* ---------- Catalogo ---------- */
+
+.catalogo {
+  padding: 1rem 2rem 2rem;
+}
+
+.grid-productos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.card-producto {
+  background: white;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.card-producto .precio {
+  font-weight: 700;
+  color: var(--dorado-oscuro);
+  margin: 0;
+}
+
+.card-producto .stock {
+  font-size: 0.8rem;
+  color: #6b5c4f;
+  margin: 0;
+}
+
+/* ---------- Checkout / carrito ---------- */
+
+.checkout {
+  padding: 1rem 2rem 2rem;
+  background: white;
+  border-top: 1px solid var(--borde);
+  border-bottom: 1px solid var(--borde);
+}
+
+.lista-carrito {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lista-carrito li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.lista-carrito li > span:first-child {
+  flex: 1;
+}
+
+.cantidad-controles {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cantidad-controles button {
+  padding: 0.15rem 0.55rem;
+}
+
+.checkout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.checkout-actions label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  gap: 0.25rem;
+}
+
+.checkout-actions select {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+}
+
+.total {
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ---------- Mis pedidos ---------- */
+
+.mis-pedidos {
+  padding: 1.5rem 2rem 3rem;
+}
+
+.mis-pedidos ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+  background: var(--marron);
+  color: #f1e6da;
+  padding: 2.5rem 2rem 1.5rem;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 2rem;
+}
+
+.site-footer .logo {
+  color: white;
+}
+
+.footer-brand p {
+  font-size: 0.85rem;
+  color: #cdb9a6;
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footer-col h3 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #f4c542;
+}
+
+.footer-col a {
+  font-size: 0.85rem;
+  color: #e8dcce;
+}
+
+.footer-col a:hover {
+  color: white;
+}
+
+.footer-bottom {
+  grid-column: 1 / -1;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 1rem;
+  font-size: 0.75rem;
+  color: #b8a893;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .header-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    margin-left: 0;
+  }
+
+  .site-footer {
+    grid-template-columns: 1fr 1fr;
+  }
 }

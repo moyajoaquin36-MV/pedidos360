@@ -1,26 +1,26 @@
 /**
- * Configuracion de ejemplo. Reemplazar tenantId/clientId una vez creado el
- * tenant de Azure AD (ver guia "Creacion de tenant") y registrada la app
- * SPA en el Portal de Azure. apiGatewayBaseUrl debe apuntar al endpoint de
- * AWS API Gateway una vez desplegado.
+ * Tenant real: pedidos360dsy110736 (creado 16/09/2026).
+ * App registrations: Pedidos360-Frontend (SPA) y Pedidos360-API (recurso).
+ *
+ * pedidosBaseUrl / productosBaseUrl apuntan a localhost mientras no exista
+ * el API Gateway de AWS: una vez desplegado, ambos deberian colapsar a la
+ * misma URL base del Gateway (con distinto path, /api/pedidos vs
+ * /api/productos), que es como quedaria en produccion.
  */
 export const environment = {
   production: false,
 
   azureAd: {
-    clientId: '00000000-0000-0000-0000-000000000000',
-    tenantId: '00000000-0000-0000-0000-000000000000',
+    clientId: '9c93580f-21b8-4cc4-a77f-61ee0f416e1d',
+    tenantId: '0079c3b5-6d24-4e9a-ae29-879747fa5377',
     redirectUri: 'http://localhost:4200',
     postLogoutRedirectUri: 'http://localhost:4200',
     // Scope expuesto por la API (Expose an API -> Add a scope) en el App
-    // Registration del backend, ej: api://<client-id-backend>/access_as_user
-    apiScopes: ['api://00000000-0000-0000-0000-000000000000/access_as_user']
+    // Registration del backend.
+    apiScopes: ['api://69bfb4d4-1adf-46e5-933a-9e1c2be64a40/access_as_user']
   },
 
-  apiGatewayBaseUrl: 'https://TU-API-ID.execute-api.TU-REGION.amazonaws.com/prod',
-
-  api: {
-    pedidos: '/api/pedidos',
-    productos: '/api/productos'
-  }
+  // TEMPORAL: sin API Gateway todavia, se apunta directo a cada microservicio local.
+  pedidosBaseUrl: 'http://localhost:8081/api/pedidos',
+  productosBaseUrl: 'http://localhost:8082/api/productos'
 };

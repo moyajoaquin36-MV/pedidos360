@@ -1,0 +1,37 @@
+<footer class="site-footer">
+  <div class="footer-brand">
+    <span class="logo">PEDIDOS<span>360</span></span>
+    <p>La red que une a 20 panaderias, pastelerias y cafeterias independientes en una sola plataforma de pedidos.</p>
+  </div>
+
+  <div class="footer-col">
+    <h3>Conocenos</h3>
+    <a routerLink="/home" fragment="como-funciona">Sobre Pedidos 360</a>
+    <a routerLink="/home" fragment="como-funciona">Como funciona la red</a>
+    <a href="mailto:contacto@pedidos360.cl?subject=Quiero%20sumar%20mi%20local%20a%20Pedidos%20360">
+      Sumate como local
+    </a>
+  </div>
+
+  <div class="footer-col">
+    <h3>Redes sociales</h3>
+    <a href="javascript:void(0)">Instagram</a>
+    <a href="javascript:void(0)">Facebook</a>
+    <a href="javascript:void(0)">TikTok</a>
+  </div>
+
+  <div class="footer-col">
+    <h3>Mi cuenta</h3>
+    <ng-container *ngIf="cuenta; else piePublico">
+      <a routerLink="/home" fragment="mis-pedidos">Mis pedidos</a>
+      <a href="javascript:void(0)" (click)="cerrarSesion()">Cerrar sesion</a>
+    </ng-container>
+    <ng-template #piePublico>
+      <a href="javascript:void(0)" (click)="iniciarSesion()">Iniciar sesion</a>
+    </ng-template>
+  </div>
+
+  <div class="footer-bottom">
+    Pedidos 360 &middot; Proyecto academico DSY1107 &middot; Desarrollo Cloud Native I
+  </div>
+</footer>
