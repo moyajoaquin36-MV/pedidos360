@@ -18,12 +18,23 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
+/**
+ * open-in-view esta desactivado (application.yml), por lo que la
+ * transaccion debe mantenerse abierta explicitamente mientras se mapea la
+ * entidad (con su coleccion lazy "items") a PedidoResponse.
+ */
 @RestController
 @RequestMapping("/api/pedidos")
+@Transactional
 public class PedidoController {
+
+    private static final Set<String> ROLES_PERSONAL_OPERATIVO =
+            Set.of("OPERADOR_COCINA", "REPARTIDOR", "ADMIN_LOCAL", "ADMIN_GENERAL");
 
     private final PedidoRepository pedidoRepository;
 
@@ -31,9 +42,22 @@ public class PedidoController {
         this.pedidoRepository = pedidoRepository;
     }
 
+    /**
+     * Un CLIENTE solo ve sus propios pedidos (por clienteId = subject del
+     * JWT). El personal operativo y los administradores ven todos los
+     * pedidos, ya que necesitan coordinar preparacion/despacho entre
+     * distintos clientes.
+     */
     @GetMapping
-    public List<PedidoResponse> listar() {
-        return pedidoRepository.findAll().stream()
+    public List<PedidoResponse> listar(@AuthenticationPrincipal Jwt jwt) {
+        List<String> roles = jwt.getClaimAsStringList("roles");
+        boolean esPersonalOperativo = roles != null && roles.stream().anyMatch(ROLES_PERSONAL_OPERATIVO::contains);
+
+        List<Pedido> pedidos = esPersonalOperativo
+                ? pedidoRepository.findAll()
+                : pedidoRepository.findByClienteId(jwt.getSubject());
+
+        return pedidos.stream()
                 .map(PedidoResponse::from)
                 .toList();
     }
