@@ -33,3 +33,9 @@ docker compose -f ../docker-compose.yml up -d     # MySQL en localhost:3306
 cd ms-pedidos && ./mvnw spring-boot:run            # puerto 8081
 cd ms-productos && ./mvnw spring-boot:run          # puerto 8082
 ```
+
+**Verificado (16/09/2026):** con Docker + MySQL 8.4 corriendo localmente, ambos microservicios se
+conectan correctamente y Hibernate crea el esquema (`pedido`, `item_pedido`, `producto`) al
+arrancar (`ddl-auto: update`). La URL JDBC necesita `allowPublicKeyRetrieval=true` porque MySQL 8
+usa `caching_sha2_password` por defecto; sin esa opcion, el driver falla con "Public Key Retrieval
+is not allowed" al no poder validar sin SSL.
