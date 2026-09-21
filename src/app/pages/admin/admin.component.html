@@ -1,0 +1,88 @@
+<section class="admin-page">
+  <div class="admin-titulo">
+    <h1>Panel de administracion</h1>
+    <a routerLink="/home" class="volver">&larr; Volver a la tienda</a>
+  </div>
+  <p class="dropdown-sub">Solo visible para el rol <strong>ADMIN_GENERAL</strong>.</p>
+
+  <p *ngIf="mensaje" class="ok">{{ mensaje }}</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+
+  <h2>Resumen de la red</h2>
+  <div class="kpis">
+    <div class="kpi"><span>Pedidos</span><strong>{{ pedidos.length }}</strong></div>
+    <div class="kpi"><span>Ventas (sin cancelados)</span><strong>{{ totalVentas | currency: 'CLP' }}</strong></div>
+    <div class="kpi"><span>Productos</span><strong>{{ productos.length }}</strong></div>
+    <div class="kpi" [class.alerta]="productosStockBajo.length > 0">
+      <span>Stock bajo (menos de {{ umbralStockBajo }})</span><strong>{{ productosStockBajo.length }}</strong>
+    </div>
+  </div>
+  <p class="estados">
+    <span *ngFor="let e of pedidosPorEstado" class="tag">{{ e.estado }}: {{ e.cantidad }}</span>
+  </p>
+
+  <h2>Agregar producto</h2>
+  <form class="form-admin" (ngSubmit)="agregarProducto()" #f="ngForm">
+    <label>
+      Local
+      <select name="localId" [(ngModel)]="nuevo.localId">
+        <option *ngFor="let l of locales" [value]="l.id">{{ l.nombre }}</option>
+      </select>
+    </label>
+    <label>Nombre <input name="nombre" [(ngModel)]="nuevo.nombre" required /></label>
+    <label>Precio <input type="number" name="precio" [(ngModel)]="nuevo.precio" min="0" required /></label>
+    <label>Stock inicial <input type="number" name="stock" [(ngModel)]="nuevo.stock" min="0" required /></label>
+    <button type="submit" [disabled]="f.invalid">Agregar producto</button>
+  </form>
+
+  <h2>Inventario</h2>
+  <label class="filtro">
+    Local
+    <select [(ngModel)]="filtroLocal">
+      <option value="todos">Todos los locales</option>
+      <option *ngFor="let l of locales" [value]="l.id">{{ l.nombre }}</option>
+    </select>
+  </label>
+  <div class="tabla-wrap">
+    <table>
+      <thead>
+        <tr><th>Local</th><th>Producto</th><th>Precio</th><th>Stock</th><th>Reponer</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of productosFiltrados" [class.fila-alerta]="p.stock < umbralStockBajo">
+          <td>{{ nombreLocal(p.localId) }}</td>
+          <td>{{ p.nombre }}</td>
+          <td>{{ p.precio | currency: 'CLP' }}</td>
+          <td>{{ p.stock }}</td>
+          <td>
+            <input type="number" min="1" [(ngModel)]="reposicion[p.id]" placeholder="+ unidades" />
+            <button type="button" (click)="reponer(p)">Reponer</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Pedidos de la red</h2>
+  <div class="tabla-wrap">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Local</th><th>Entrega</th><th>Total</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of pedidos">
+          <td>{{ p.id }}</td>
+          <td>{{ nombreLocal(p.localId) }}</td>
+          <td>{{ p.modalidadEntrega }}</td>
+          <td>{{ p.total | currency: 'CLP' }}</td>
+          <td>
+            <select [ngModel]="p.estado" (ngModelChange)="cambiarEstado(p, $event)">
+              <option *ngFor="let e of estados" [value]="e">{{ e }}</option>
+            </select>
+          </td>
+        </tr>
+        <tr *ngIf="pedidos.length === 0"><td colspan="5">Sin pedidos registrados.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>

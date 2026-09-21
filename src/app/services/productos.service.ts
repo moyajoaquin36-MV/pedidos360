@@ -30,6 +30,10 @@ export class ProductosService {
     return this.http.get<Producto[]>(this.baseUrl);
   }
 
+  reponer(id: number, cantidad: number): Observable<Producto> {
+    return this.http.patch<Producto>(`${this.baseUrl}/${id}/reposicion`, { cantidad });
+  }
+
   crear(request: CrearProductoRequest): Observable<Producto> {
     return this.http.post<Producto>(this.baseUrl, request);
   }

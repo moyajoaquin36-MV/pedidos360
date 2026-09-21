@@ -4,8 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { MsalService } from '@azure/msal-angular';
 import { AccountInfo } from '@azure/msal-browser';
 import { catchError, of } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import { Rol, decodificarPayloadJwt, obtenerRoles } from '../../auth/roles';
+import { Rol } from '../../auth/roles';
+import { RolesService } from '../../auth/roles.service';
 import { LOCALES } from '../../data/locales';
 import { CartService } from '../../services/cart.service';
 import { LocalSeleccionadoService } from '../../services/local-seleccionado.service';
@@ -40,6 +40,7 @@ export class HomeComponent implements OnInit {
     private readonly msalService: MsalService,
     private readonly pedidosService: PedidosService,
     private readonly productosService: ProductosService,
+    private readonly rolesService: RolesService,
     readonly carrito: CartService,
     readonly localSeleccionado: LocalSeleccionadoService
   ) {}
@@ -47,20 +48,7 @@ export class HomeComponent implements OnInit {
   ngOnInit(): void {
     this.cuenta = this.msalService.instance.getActiveAccount();
 
-    // Los roles se leen del access token de la API (su audience es la API,
-    // que es donde estan definidos y asignados los app roles), no del ID
-    // token (cuya audience es la propia SPA).
-    this.msalService
-      .acquireTokenSilent({ scopes: environment.azureAd.apiScopes, account: this.cuenta ?? undefined })
-      .subscribe({
-        next: (result) => {
-          const claims = decodificarPayloadJwt(result.accessToken);
-          this.roles = obtenerRoles(claims);
-        },
-        error: () => {
-          this.roles = [];
-        }
-      });
+    this.rolesService.cargar().subscribe((roles) => (this.roles = roles));
 
     this.cargarProductos();
     this.cargarPedidos();
@@ -117,34 +105,6 @@ export class HomeComponent implements OnInit {
       .subscribe((actualizado) => {
         if (actualizado) {
           this.cargarPedidos();
-        }
-      });
-  }
-
-  nuevoProducto = { nombre: '', precio: 1000, stock: 10 };
-  errorProducto: string | null = null;
-
-  agregarProducto(): void {
-    this.errorProducto = null;
-    const local = this.localSeleccionado.actual;
-    this.productosService
-      .crear({
-        localId: local,
-        sku: `${local}-${Date.now()}`,
-        nombre: this.nuevoProducto.nombre,
-        precio: this.nuevoProducto.precio,
-        stock: this.nuevoProducto.stock
-      })
-      .pipe(
-        catchError((error) => {
-          this.errorProducto = `No se pudo crear el producto (${error.status ?? 'sin conexion'}).`;
-          return of(null);
-        })
-      )
-      .subscribe((producto) => {
-        if (producto) {
-          this.nuevoProducto = { nombre: '', precio: 1000, stock: 10 };
-          this.cargarProductos();
         }
       });
   }

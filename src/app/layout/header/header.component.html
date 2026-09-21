@@ -42,6 +42,14 @@
         <ng-container *ngIf="cuenta; else noLogueado">
           <p class="dropdown-title">{{ cuenta.name }}</p>
           <p class="dropdown-sub">{{ cuenta.username }}</p>
+          <a
+            *ngIf="roles.esAdmin$ | async"
+            routerLink="/admin"
+            class="btn-admin"
+            (click)="menuCuentaAbierto = false"
+          >
+            Panel de administracion
+          </a>
           <button type="button" (click)="cerrarSesion()">Cerrar sesion</button>
         </ng-container>
         <ng-template #noLogueado>

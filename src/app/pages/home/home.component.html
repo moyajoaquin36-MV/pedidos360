@@ -35,14 +35,6 @@
     </p>
   </div>
 
-  <form *ngIf="esAdmin" class="form-admin" (ngSubmit)="agregarProducto()" #fp="ngForm">
-    <h3>Administrar catalogo: agregar producto a {{ nombreLocalSeleccionado }}</h3>
-    <input name="nombre" [(ngModel)]="nuevoProducto.nombre" placeholder="Nombre" required />
-    <input type="number" name="precio" [(ngModel)]="nuevoProducto.precio" min="0" required />
-    <input type="number" name="stock" [(ngModel)]="nuevoProducto.stock" min="0" required />
-    <button type="submit" [disabled]="fp.invalid">Agregar producto</button>
-    <span *ngIf="errorProducto" class="error">{{ errorProducto }}</span>
-  </form>
 </section>
 
 <section class="checkout" id="checkout" *ngIf="puedeComprar">
