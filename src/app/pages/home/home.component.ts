@@ -142,6 +142,8 @@ export class HomeComponent implements OnInit {
           this.carrito.limpiar();
           this.cargarPedidos();
         }
+        // Tras un pedido (o un rechazo por stock) se refresca el catalogo para ver el stock real.
+        this.cargarProductos();
       });
   }
 }
