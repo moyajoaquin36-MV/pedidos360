@@ -32,6 +32,10 @@ public class Producto {
     /** Inventario basico: unidades disponibles del producto o materia prima principal. */
     private Integer stock;
 
+    public void reponerStock(int cantidad) {
+        stock += cantidad;
+    }
+
     public void rebajarStock(int cantidad) {
         if (cantidad > stock) {
             throw new IllegalStateException("Stock insuficiente para " + nombre);

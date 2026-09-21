@@ -56,6 +56,8 @@ public class SecurityConfig {
                             .hasAnyRole("CLIENTE", "ADMIN_GENERAL")
                         .requestMatchers(HttpMethod.POST, "/api/productos")
                             .hasAnyRole("ADMIN_GENERAL")
+                        .requestMatchers(HttpMethod.PATCH, "/api/productos/*/reposicion")
+                            .hasAnyRole("ADMIN_GENERAL")
                         .requestMatchers(HttpMethod.PATCH, "/api/productos/*/stock")
                             .hasAnyRole("OPERADOR_COCINA", "ADMIN_GENERAL")
                         .anyRequest().authenticated())

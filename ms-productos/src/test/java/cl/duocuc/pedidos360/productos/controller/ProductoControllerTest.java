@@ -109,4 +109,32 @@ class ProductoControllerTest {
                 .andExpect(status().isConflict());
         org.junit.jupiter.api.Assertions.assertEquals(2, productoRepository.findById(p.getId()).orElseThrow().getStock());
     }
+
+    @Test
+    void soloAdminPuedeReponerStock() throws Exception {
+        cl.duocuc.pedidos360.productos.domain.Producto p = new cl.duocuc.pedidos360.productos.domain.Producto();
+        p.setLocalId("local-01");
+        p.setSku("R-1");
+        p.setNombre("Pan de reposicion");
+        p.setPrecio(new java.math.BigDecimal("1000"));
+        p.setStock(2);
+        p = productoRepository.save(p);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .patch("/api/productos/" + p.getId() + "/reposicion")
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                                .jwt(jwt -> jwt.subject("cliente-1").claim("roles", java.util.List.of("CLIENTE")))
+                                .authorities(new SimpleGrantedAuthority("ROLE_CLIENTE")))
+                        .contentType("application/json").content("{\"cantidad\":5}"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .patch("/api/productos/" + p.getId() + "/reposicion")
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                                .jwt(jwt -> jwt.subject("admin-1").claim("roles", java.util.List.of("ADMIN_GENERAL")))
+                                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN_GENERAL")))
+                        .contentType("application/json").content("{\"cantidad\":5}"))
+                .andExpect(status().isOk());
+        org.junit.jupiter.api.Assertions.assertEquals(7, productoRepository.findById(p.getId()).orElseThrow().getStock());
+    }
 }

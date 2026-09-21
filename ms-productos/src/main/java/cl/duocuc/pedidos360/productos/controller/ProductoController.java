@@ -5,6 +5,7 @@ import cl.duocuc.pedidos360.productos.dto.CrearProductoRequest;
 import cl.duocuc.pedidos360.productos.dto.DescontarStockRequest;
 import cl.duocuc.pedidos360.productos.dto.ProductoResponse;
 import cl.duocuc.pedidos360.productos.dto.RebajarStockRequest;
+import cl.duocuc.pedidos360.productos.dto.ReponerStockRequest;
 import cl.duocuc.pedidos360.productos.repository.ProductoRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -61,6 +62,13 @@ public class ProductoController {
     public ProductoResponse rebajarStock(@PathVariable Long id, @Valid @RequestBody RebajarStockRequest request) {
         Producto producto = buscarOFallar(id);
         producto.rebajarStock(request.cantidad());
+        return ProductoResponse.from(productoRepository.save(producto));
+    }
+
+    @PatchMapping("/{id}/reposicion")
+    public ProductoResponse reponerStock(@PathVariable Long id, @Valid @RequestBody ReponerStockRequest request) {
+        Producto producto = buscarOFallar(id);
+        producto.reponerStock(request.cantidad());
         return ProductoResponse.from(productoRepository.save(producto));
     }
 
