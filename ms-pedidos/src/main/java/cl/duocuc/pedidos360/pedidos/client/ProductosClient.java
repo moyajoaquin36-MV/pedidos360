@@ -1,7 +1,7 @@
 package cl.duocuc.pedidos360.pedidos.client;
 
-import cl.duocuc.pedidos360.pedidos.web.ProductosNoDisponibleException;
-import cl.duocuc.pedidos360.pedidos.web.StockInsuficienteException;
+import cl.duocuc.pedidos360.pedidos.controller.ProductosNoDisponibleException;
+import cl.duocuc.pedidos360.pedidos.controller.StockInsuficienteException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

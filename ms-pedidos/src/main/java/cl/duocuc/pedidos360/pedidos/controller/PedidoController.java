@@ -1,4 +1,4 @@
-package cl.duocuc.pedidos360.pedidos.web;
+package cl.duocuc.pedidos360.pedidos.controller;
 
 import cl.duocuc.pedidos360.pedidos.client.ProductosClient;
 import cl.duocuc.pedidos360.pedidos.domain.ItemPedido;
@@ -35,7 +35,7 @@ import java.util.Set;
 public class PedidoController {
 
     private static final Set<String> ROLES_PERSONAL_OPERATIVO =
-            Set.of("OPERADOR_COCINA", "REPARTIDOR", "ADMIN_LOCAL", "ADMIN_GENERAL");
+            Set.of("OPERADOR_COCINA", "ADMIN_GENERAL");
 
     private final PedidoRepository pedidoRepository;
     private final ProductosClient productosClient;

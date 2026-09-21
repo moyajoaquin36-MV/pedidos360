@@ -1,4 +1,4 @@
-package cl.duocuc.pedidos360.productos.web;
+package cl.duocuc.pedidos360.pedidos.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,14 +13,19 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ProductoNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(ProductoNotFoundException ex) {
+    @ExceptionHandler(PedidoNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(PedidoNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(cuerpoError(ex.getMessage()));
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, Object>> handleStockInsuficiente(IllegalStateException ex) {
+    @ExceptionHandler(StockInsuficienteException.class)
+    public ResponseEntity<Map<String, Object>> handleStock(StockInsuficienteException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(cuerpoError(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ProductosNoDisponibleException.class)
+    public ResponseEntity<Map<String, Object>> handleProductosCaido(ProductosNoDisponibleException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(cuerpoError(ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

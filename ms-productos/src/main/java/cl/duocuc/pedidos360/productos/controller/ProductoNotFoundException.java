@@ -1,4 +1,4 @@
-package cl.duocuc.pedidos360.productos.web;
+package cl.duocuc.pedidos360.productos.controller;
 
 public class ProductoNotFoundException extends RuntimeException {
     public ProductoNotFoundException(Long id) {

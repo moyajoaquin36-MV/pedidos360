@@ -1,4 +1,4 @@
-package cl.duocuc.pedidos360.pedidos.web;
+package cl.duocuc.pedidos360.pedidos.controller;
 
 import cl.duocuc.pedidos360.pedidos.client.ProductosClient;
 import cl.duocuc.pedidos360.pedidos.repository.PedidoRepository;
@@ -76,7 +76,7 @@ class PedidoControllerTest {
     }
 
     @Test
-    void repartidorNoPuedeCrearPedidos() throws Exception {
+    void operadorNoPuedeCrearPedidos() throws Exception {
         String body = """
                 {
                   "localId": "local-01",
@@ -87,8 +87,8 @@ class PedidoControllerTest {
 
         mockMvc.perform(post("/api/pedidos")
                         .with(SecurityMockMvcRequestPostProcessors.jwt()
-                                .jwt(jwt -> jwt.subject("repartidor-1").claim("roles", java.util.List.of("REPARTIDOR")))
-                                .authorities(new SimpleGrantedAuthority("ROLE_REPARTIDOR")))
+                                .jwt(jwt -> jwt.subject("operador-1").claim("roles", java.util.List.of("OPERADOR_COCINA")))
+                                .authorities(new SimpleGrantedAuthority("ROLE_OPERADOR_COCINA")))
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isForbidden());

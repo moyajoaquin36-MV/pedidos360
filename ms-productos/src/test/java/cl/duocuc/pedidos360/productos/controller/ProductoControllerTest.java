@@ -1,4 +1,4 @@
-package cl.duocuc.pedidos360.productos.web;
+package cl.duocuc.pedidos360.productos.controller;
 
 import cl.duocuc.pedidos360.productos.repository.ProductoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +36,7 @@ class ProductoControllerTest {
     }
 
     @Test
-    void adminLocalPuedeCrearYClientePuedeListar() throws Exception {
+    void adminPuedeCrearYClientePuedeListar() throws Exception {
         String body = """
                 {
                   "localId": "local-01",
@@ -49,8 +49,8 @@ class ProductoControllerTest {
 
         mockMvc.perform(post("/api/productos")
                         .with(SecurityMockMvcRequestPostProcessors.jwt()
-                                .jwt(jwt -> jwt.subject("admin-1").claim("roles", java.util.List.of("ADMIN_LOCAL")))
-                                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN_LOCAL")))
+                                .jwt(jwt -> jwt.subject("admin-1").claim("roles", java.util.List.of("ADMIN_GENERAL")))
+                                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN_GENERAL")))
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isCreated());

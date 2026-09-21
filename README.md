@@ -1,41 +1,47 @@
-# pedidos360-backend
+# Pedidos 360 - Backend (2 microservicios Spring Boot)
 
-Backend del sistema **Pedidos 360** (DSY1107 - Evaluacion Parcial N°1): 2 microservicios Spring
-Boot, cada uno protegido con JWT emitido por Azure AD y pensado para ser consumido a traves de AWS
-API Gateway.
+## Arquitectura en una imagen
 
-## Modulos
-
-| Modulo | Responsabilidad | Puerto por defecto |
-|---|---|---|
-| [`ms-pedidos`](./ms-pedidos) | Ciclo de vida del pedido (crear, listar, cambiar estado) | 8081 |
-| [`ms-productos`](./ms-productos) | Catalogo de productos y stock basico por local | 8082 |
-
-Cada modulo es un proyecto Spring Boot **independiente** (su propio `spring-boot-starter-parent`,
-su propio jar desplegable). Este repo solo los agrupa para facilitar el desarrollo en pareja; en
-produccion cada uno corre en su propia instancia EC2. El detalle de configuracion (variables de
-entorno pendientes, seguridad, endpoints) esta en el `README.md` de cada modulo.
-
-## Compilar y testear todo junto
-
-```bash
-./mvnw test          # corre los tests de ms-pedidos y ms-productos en un solo comando
+```
+Navegador (Angular + MSAL)
+        │  login con Azure AD  → obtiene id token + access token (JWT)
+        ▼
+AWS API Gateway  ── valida el JWT (issuer + audience de Azure AD)
+   ├── /api/pedidos   ──►  ms-pedidos   ──►  BD ms_pedidos_db
+   │                          │  (al crear un pedido descuenta stock)
+   └── /api/productos ──►  ms-productos ──►  BD ms_productos_db
+        (todo corre en Docker sobre una EC2)
 ```
 
-Tambien se puede compilar/testear cada modulo por separado entrando a su carpeta y usando su propio
-`./mvnw`.
+Cada microservicio **vuelve a validar** el JWT (firma, issuer, audience, expiracion) y aplica los roles.
 
-## Correr localmente
+## Donde esta cada cosa (por microservicio)
 
+| Carpeta | Que hay |
+|---|---|
+| `controller/` | Endpoints REST (`PedidoController`, `ProductoController`) |
+| `config/` | Seguridad: validacion del JWT de Azure AD y permisos por rol (`SecurityConfig`) |
+| `domain/` | Entidades JPA (tablas) |
+| `repository/` | Acceso a la base de datos |
+| `dto/` | Objetos de entrada/salida de la API |
+| `client/` | (`ms-pedidos`) llamada a `ms-productos` para descontar stock |
+
+## Bases de datos: solo 2
+
+`ms_pedidos_db` (pedido, item_pedido) y `ms_productos_db` (producto): **una por microservicio**.
+Las otras que muestra MySQL (`mysql`, `sys`, `information_schema`, `performance_schema`) son
+del sistema, no del proyecto. Ambas corren en un unico contenedor MySQL.
+
+## Roles: solo 3, cada uno con una funcion
+
+| Rol (Azure AD) | Que puede hacer |
+|---|---|
+| `CLIENTE` | Ve el catalogo, compra y ve **solo sus** pedidos |
+| `OPERADOR_COCINA` | Ve **todos** los pedidos y avanza su estado (recibido → en preparacion → listo → entregado) |
+| `ADMIN_GENERAL` | Todo lo anterior + agrega productos al catalogo |
+
+## Correr / probar
 ```bash
-docker compose -f ../docker-compose.yml up -d     # MySQL en localhost:3306
-
-cd ms-pedidos && ./mvnw spring-boot:run            # puerto 8081
-cd ms-productos && ./mvnw spring-boot:run          # puerto 8082
+./mvnw test                       # tests de ambos microservicios
+docker compose -f docker-compose.aws.yml --env-file .env up -d --build   # despliegue (EC2)
 ```
-
-**Verificado (16/09/2026):** con Docker + MySQL 8.4 corriendo localmente, ambos microservicios se
-conectan correctamente y Hibernate crea el esquema (`pedido`, `item_pedido`, `producto`) al
-arrancar (`ddl-auto: update`). La URL JDBC necesita `allowPublicKeyRetrieval=true` porque MySQL 8
-usa `caching_sha2_password` por defecto; sin esa opcion, el driver falla con "Public Key Retrieval
-is not allowed" al no poder validar sin SSL.

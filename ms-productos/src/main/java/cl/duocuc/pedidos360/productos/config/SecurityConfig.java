@@ -51,13 +51,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/productos/**")
-                            .hasAnyRole("CLIENTE", "OPERADOR_COCINA", "REPARTIDOR", "ADMIN_LOCAL", "ADMIN_GENERAL")
+                            .hasAnyRole("CLIENTE", "OPERADOR_COCINA", "ADMIN_GENERAL")
                         .requestMatchers(HttpMethod.POST, "/api/productos/descuento-stock")
-                            .hasAnyRole("CLIENTE", "OPERADOR_COCINA", "ADMIN_LOCAL", "ADMIN_GENERAL")
+                            .hasAnyRole("CLIENTE", "ADMIN_GENERAL")
                         .requestMatchers(HttpMethod.POST, "/api/productos")
-                            .hasAnyRole("ADMIN_LOCAL", "ADMIN_GENERAL")
+                            .hasAnyRole("ADMIN_GENERAL")
                         .requestMatchers(HttpMethod.PATCH, "/api/productos/*/stock")
-                            .hasAnyRole("OPERADOR_COCINA", "ADMIN_LOCAL", "ADMIN_GENERAL")
+                            .hasAnyRole("OPERADOR_COCINA", "ADMIN_GENERAL")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt

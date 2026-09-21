@@ -1,4 +1,4 @@
-package cl.duocuc.pedidos360.productos.web;
+package cl.duocuc.pedidos360.productos.controller;
 
 import cl.duocuc.pedidos360.productos.domain.Producto;
 import cl.duocuc.pedidos360.productos.dto.CrearProductoRequest;
