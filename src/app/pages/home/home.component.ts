@@ -5,7 +5,7 @@ import { MsalService } from '@azure/msal-angular';
 import { AccountInfo } from '@azure/msal-browser';
 import { catchError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { decodificarPayloadJwt, obtenerRoles } from '../../auth/roles';
+import { Rol, decodificarPayloadJwt, obtenerRoles } from '../../auth/roles';
 import { LOCALES } from '../../data/locales';
 import { CartService } from '../../services/cart.service';
 import { LocalSeleccionadoService } from '../../services/local-seleccionado.service';
@@ -64,6 +64,89 @@ export class HomeComponent implements OnInit {
 
     this.cargarProductos();
     this.cargarPedidos();
+  }
+
+  // --- Utilidad de cada rol ---
+  get esAdmin(): boolean {
+    return this.roles.includes(Rol.AdminGeneral);
+  }
+
+  get esOperador(): boolean {
+    return this.roles.includes(Rol.OperadorCocina);
+  }
+
+  /** Puede comprar: cliente o admin. */
+  get puedeComprar(): boolean {
+    return this.roles.includes(Rol.Cliente) || this.esAdmin;
+  }
+
+  /** Puede cambiar el estado de los pedidos: operador o admin. */
+  get puedeGestionarPedidos(): boolean {
+    return this.esOperador || this.esAdmin;
+  }
+
+  get tituloPedidos(): string {
+    return this.puedeGestionarPedidos ? 'Pedidos de la red' : 'Mis pedidos';
+  }
+
+  siguienteEstado(estado: string): string | null {
+    const flujo: Record<string, string> = {
+      RECIBIDO: 'EN_PREPARACION',
+      EN_PREPARACION: 'LISTO',
+      LISTO: 'ENTREGADO'
+    };
+    return flujo[estado] ?? null;
+  }
+
+  avanzarPedido(pedido: Pedido): void {
+    const siguiente = this.siguienteEstado(pedido.estado);
+    if (siguiente) {
+      this.cambiarEstado(pedido, siguiente);
+    }
+  }
+
+  cambiarEstado(pedido: Pedido, estado: string): void {
+    this.pedidosService
+      .cambiarEstado(pedido.id, estado)
+      .pipe(
+        catchError((error) => {
+          this.errorPedidos = `No se pudo cambiar el estado (${error.status ?? 'sin conexion'}).`;
+          return of(null);
+        })
+      )
+      .subscribe((actualizado) => {
+        if (actualizado) {
+          this.cargarPedidos();
+        }
+      });
+  }
+
+  nuevoProducto = { nombre: '', precio: 1000, stock: 10 };
+  errorProducto: string | null = null;
+
+  agregarProducto(): void {
+    this.errorProducto = null;
+    const local = this.localSeleccionado.actual;
+    this.productosService
+      .crear({
+        localId: local,
+        sku: `${local}-${Date.now()}`,
+        nombre: this.nuevoProducto.nombre,
+        precio: this.nuevoProducto.precio,
+        stock: this.nuevoProducto.stock
+      })
+      .pipe(
+        catchError((error) => {
+          this.errorProducto = `No se pudo crear el producto (${error.status ?? 'sin conexion'}).`;
+          return of(null);
+        })
+      )
+      .subscribe((producto) => {
+        if (producto) {
+          this.nuevoProducto = { nombre: '', precio: 1000, stock: 10 };
+          this.cargarProductos();
+        }
+      });
   }
 
   get nombreLocalSeleccionado(): string {

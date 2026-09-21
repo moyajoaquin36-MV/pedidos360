@@ -1,8 +1,12 @@
+/**
+ * Roles de la aplicacion (app roles de Azure AD) y para que sirve cada uno:
+ * - CLIENTE: compra (catalogo, carrito, checkout) y ve solo sus pedidos.
+ * - OPERADOR_COCINA: ve todos los pedidos y avanza su estado (preparar, listo, entregado).
+ * - ADMIN_GENERAL: todo lo anterior + administra el catalogo (agrega productos).
+ */
 export enum Rol {
   Cliente = 'CLIENTE',
   OperadorCocina = 'OPERADOR_COCINA',
-  Repartidor = 'REPARTIDOR',
-  AdminLocal = 'ADMIN_LOCAL',
   AdminGeneral = 'ADMIN_GENERAL'
 }
 

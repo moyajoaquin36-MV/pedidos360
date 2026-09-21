@@ -12,6 +12,14 @@ export interface Producto {
   stock: number;
 }
 
+export interface CrearProductoRequest {
+  localId: string;
+  sku: string;
+  nombre: string;
+  precio: number;
+  stock: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProductosService {
   private readonly baseUrl = environment.productosBaseUrl;
@@ -20,5 +28,9 @@ export class ProductosService {
 
   listar(): Observable<Producto[]> {
     return this.http.get<Producto[]>(this.baseUrl);
+  }
+
+  crear(request: CrearProductoRequest): Observable<Producto> {
+    return this.http.post<Producto>(this.baseUrl, request);
   }
 }

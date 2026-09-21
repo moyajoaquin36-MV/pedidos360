@@ -44,4 +44,8 @@ export class PedidosService {
   crear(request: CrearPedidoRequest): Observable<Pedido> {
     return this.http.post<Pedido>(this.baseUrl, request);
   }
+
+  cambiarEstado(id: number, estado: string): Observable<Pedido> {
+    return this.http.patch<Pedido>(`${this.baseUrl}/${id}/estado`, { estado });
+  }
 }

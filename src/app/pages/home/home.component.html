@@ -13,7 +13,7 @@
   <ol>
     <li><strong>Elige un local</strong> de los 20 asociados en el selector de arriba.</li>
     <li><strong>Arma tu pedido</strong> agregando productos de ese local a tu carrito.</li>
-    <li><strong>Confirma y sigue el estado</strong> de tu pedido en "Mis pedidos", mientras el local lo prepara y despacha.</li>
+    <li><strong>Confirma y sigue el estado</strong> de tu pedido en "Mis pedidos", mientras el operador de cocina lo prepara y lo entrega.</li>
   </ol>
 </section>
 
@@ -27,16 +27,25 @@
       <h3>{{ producto.nombre }}</h3>
       <p class="precio">{{ producto.precio | currency: 'CLP' }}</p>
       <p class="stock">Stock disponible: {{ producto.stock }}</p>
-      <button type="button" (click)="agregarAlCarrito(producto)">Agregar al carrito</button>
+      <button *ngIf="puedeComprar" type="button" (click)="agregarAlCarrito(producto)">Agregar al carrito</button>
     </article>
 
     <p *ngIf="productosDelLocal.length === 0" class="dropdown-sub">
       Este local todavia no tiene productos cargados.
     </p>
   </div>
+
+  <form *ngIf="esAdmin" class="form-admin" (ngSubmit)="agregarProducto()" #fp="ngForm">
+    <h3>Administrar catalogo: agregar producto a {{ nombreLocalSeleccionado }}</h3>
+    <input name="nombre" [(ngModel)]="nuevoProducto.nombre" placeholder="Nombre" required />
+    <input type="number" name="precio" [(ngModel)]="nuevoProducto.precio" min="0" required />
+    <input type="number" name="stock" [(ngModel)]="nuevoProducto.stock" min="0" required />
+    <button type="submit" [disabled]="fp.invalid">Agregar producto</button>
+    <span *ngIf="errorProducto" class="error">{{ errorProducto }}</span>
+  </form>
 </section>
 
-<section class="checkout" id="checkout">
+<section class="checkout" id="checkout" *ngIf="puedeComprar">
   <h2>Tu carrito</h2>
   <ng-container *ngIf="(carrito.items$ | async) as items">
     <ul *ngIf="items.length > 0" class="lista-carrito">
@@ -71,12 +80,15 @@
 </section>
 
 <section class="mis-pedidos" id="mis-pedidos">
-  <h2>Mis pedidos</h2>
+  <h2>{{ tituloPedidos }}</h2>
   <p *ngIf="cargandoPedidos">Consultando...</p>
   <p *ngIf="errorPedidos" class="error">{{ errorPedidos }}</p>
   <ul *ngIf="!cargandoPedidos && !errorPedidos">
     <li *ngFor="let pedido of pedidos">
       #{{ pedido.id }} &middot; {{ pedido.estado }} &middot; {{ pedido.localId }} &middot; {{ pedido.total | currency: 'CLP' }}
+      <ng-container *ngIf="puedeGestionarPedidos && siguienteEstado(pedido.estado) as sig">
+        <button type="button" (click)="avanzarPedido(pedido)">Pasar a {{ sig }}</button>
+      </ng-container>
     </li>
     <li *ngIf="pedidos.length === 0">Sin pedidos registrados aun.</li>
   </ul>
