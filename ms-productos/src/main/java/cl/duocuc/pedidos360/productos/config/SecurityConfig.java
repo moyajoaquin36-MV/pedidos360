@@ -52,6 +52,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/productos/**")
                             .hasAnyRole("CLIENTE", "OPERADOR_COCINA", "REPARTIDOR", "ADMIN_LOCAL", "ADMIN_GENERAL")
+                        .requestMatchers(HttpMethod.POST, "/api/productos/descuento-stock")
+                            .hasAnyRole("CLIENTE", "OPERADOR_COCINA", "ADMIN_LOCAL", "ADMIN_GENERAL")
                         .requestMatchers(HttpMethod.POST, "/api/productos")
                             .hasAnyRole("ADMIN_LOCAL", "ADMIN_GENERAL")
                         .requestMatchers(HttpMethod.PATCH, "/api/productos/*/stock")

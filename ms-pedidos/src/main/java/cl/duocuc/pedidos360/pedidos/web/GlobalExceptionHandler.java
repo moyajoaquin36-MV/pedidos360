@@ -18,6 +18,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(cuerpoError(ex.getMessage()));
     }
 
+    @ExceptionHandler(StockInsuficienteException.class)
+    public ResponseEntity<Map<String, Object>> handleStock(StockInsuficienteException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(cuerpoError(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ProductosNoDisponibleException.class)
+    public ResponseEntity<Map<String, Object>> handleProductosCaido(ProductosNoDisponibleException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(cuerpoError(ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, Object> body = cuerpoError("Datos invalidos");

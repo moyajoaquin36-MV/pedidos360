@@ -82,4 +82,31 @@ class ProductoControllerTest {
                         .content(body))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void descuentoDeStockRebajaYRechazaSiNoAlcanza() throws Exception {
+        cl.duocuc.pedidos360.productos.domain.Producto p = new cl.duocuc.pedidos360.productos.domain.Producto();
+        p.setLocalId("local-01");
+        p.setSku("T-1");
+        p.setNombre("Pan de prueba");
+        p.setPrecio(new java.math.BigDecimal("1000"));
+        p.setStock(5);
+        p = productoRepository.save(p);
+
+        var jwtCliente = SecurityMockMvcRequestPostProcessors.jwt()
+                .jwt(jwt -> jwt.subject("cliente-1").claim("roles", java.util.List.of("CLIENTE")))
+                .authorities(new SimpleGrantedAuthority("ROLE_CLIENTE"));
+
+        mockMvc.perform(post("/api/productos/descuento-stock").with(jwtCliente)
+                        .contentType("application/json")
+                        .content("{\"items\":[{\"productoId\":" + p.getId() + ",\"cantidad\":3}]}"))
+                .andExpect(status().isNoContent());
+        org.junit.jupiter.api.Assertions.assertEquals(2, productoRepository.findById(p.getId()).orElseThrow().getStock());
+
+        mockMvc.perform(post("/api/productos/descuento-stock").with(jwtCliente)
+                        .contentType("application/json")
+                        .content("{\"items\":[{\"productoId\":" + p.getId() + ",\"cantidad\":3}]}"))
+                .andExpect(status().isConflict());
+        org.junit.jupiter.api.Assertions.assertEquals(2, productoRepository.findById(p.getId()).orElseThrow().getStock());
+    }
 }

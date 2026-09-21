@@ -1,5 +1,6 @@
 package cl.duocuc.pedidos360.pedidos.web;
 
+import cl.duocuc.pedidos360.pedidos.client.ProductosClient;
 import cl.duocuc.pedidos360.pedidos.domain.ItemPedido;
 import cl.duocuc.pedidos360.pedidos.domain.Pedido;
 import cl.duocuc.pedidos360.pedidos.dto.ActualizarEstadoRequest;
@@ -37,9 +38,11 @@ public class PedidoController {
             Set.of("OPERADOR_COCINA", "REPARTIDOR", "ADMIN_LOCAL", "ADMIN_GENERAL");
 
     private final PedidoRepository pedidoRepository;
+    private final ProductosClient productosClient;
 
-    public PedidoController(PedidoRepository pedidoRepository) {
+    public PedidoController(PedidoRepository pedidoRepository, ProductosClient productosClient) {
         this.pedidoRepository = pedidoRepository;
+        this.productosClient = productosClient;
     }
 
     /**
@@ -70,6 +73,12 @@ public class PedidoController {
     @PostMapping
     public ResponseEntity<PedidoResponse> crear(@AuthenticationPrincipal Jwt jwt,
                                                  @Valid @RequestBody CrearPedidoRequest request) {
+        // Rebaja de inventario en ms-productos (todo o nada). Si no alcanza el
+        // stock responde 409 y el pedido no se crea.
+        productosClient.descontarStock(jwt.getTokenValue(), request.items().stream()
+                .map(item -> new ProductosClient.ItemStock(item.productoId(), item.cantidad()))
+                .toList());
+
         Pedido pedido = new Pedido();
         pedido.setLocalId(request.localId());
         pedido.setModalidadEntrega(request.modalidadEntrega());

@@ -2,6 +2,7 @@ package cl.duocuc.pedidos360.productos.web;
 
 import cl.duocuc.pedidos360.productos.domain.Producto;
 import cl.duocuc.pedidos360.productos.dto.CrearProductoRequest;
+import cl.duocuc.pedidos360.productos.dto.DescontarStockRequest;
 import cl.duocuc.pedidos360.productos.dto.ProductoResponse;
 import cl.duocuc.pedidos360.productos.dto.RebajarStockRequest;
 import cl.duocuc.pedidos360.productos.repository.ProductoRepository;
@@ -15,8 +16,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -58,6 +62,29 @@ public class ProductoController {
         Producto producto = buscarOFallar(id);
         producto.rebajarStock(request.cantidad());
         return ProductoResponse.from(productoRepository.save(producto));
+    }
+
+    /**
+     * Descuenta stock de varios productos en una sola transaccion (todo o nada).
+     * Lo invoca ms-pedidos al crear un pedido.
+     */
+    @PostMapping("/descuento-stock")
+    @Transactional
+    public ResponseEntity<Void> descontarStock(@Valid @RequestBody DescontarStockRequest request) {
+        Map<Long, Integer> cantidadPorProducto = new HashMap<>();
+        request.items().forEach(item -> cantidadPorProducto.merge(item.productoId(), item.cantidad(), Integer::sum));
+
+        List<Producto> productos = productoRepository.findAllByIdForUpdate(cantidadPorProducto.keySet());
+        if (productos.size() != cantidadPorProducto.size()) {
+            Long faltante = cantidadPorProducto.keySet().stream()
+                    .filter(id -> productos.stream().noneMatch(p -> p.getId().equals(id)))
+                    .findFirst().orElseThrow();
+            throw new ProductoNotFoundException(faltante);
+        }
+
+        productos.forEach(producto -> producto.rebajarStock(cantidadPorProducto.get(producto.getId())));
+        productoRepository.saveAll(productos);
+        return ResponseEntity.noContent().build();
     }
 
     private Producto buscarOFallar(Long id) {

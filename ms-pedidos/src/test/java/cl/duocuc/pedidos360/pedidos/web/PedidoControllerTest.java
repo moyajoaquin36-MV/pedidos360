@@ -1,5 +1,6 @@
 package cl.duocuc.pedidos360.pedidos.web;
 
+import cl.duocuc.pedidos360.pedidos.client.ProductosClient;
 import cl.duocuc.pedidos360.pedidos.repository.PedidoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,8 +9,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,6 +33,9 @@ class PedidoControllerTest {
 
     @Autowired
     private PedidoRepository pedidoRepository;
+
+    @MockitoBean
+    private ProductosClient productosClient;
 
     @BeforeEach
     void limpiarDatos() {
@@ -84,5 +92,29 @@ class PedidoControllerTest {
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void sinStockSuficienteRetorna409YNoCreaElPedido() throws Exception {
+        doThrow(new StockInsuficienteException("Stock insuficiente para Pan amasado"))
+                .when(productosClient).descontarStock(anyString(), any());
+
+        String body = """
+                {
+                  "localId": "local-01",
+                  "modalidadEntrega": "RETIRO_EN_TIENDA",
+                  "items": [{"productoId": 1, "nombreProducto": "Pan amasado", "cantidad": 999, "precioUnitario": 1500}]
+                }
+                """;
+
+        mockMvc.perform(post("/api/pedidos")
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                                .jwt(jwt -> jwt.subject("cliente-123").claim("roles", java.util.List.of("CLIENTE")))
+                                .authorities(new SimpleGrantedAuthority("ROLE_CLIENTE")))
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isConflict());
+
+        org.junit.jupiter.api.Assertions.assertEquals(0, pedidoRepository.count());
     }
 }
