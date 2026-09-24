@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MsalService } from '@azure/msal-angular';
 import { AccountInfo } from '@azure/msal-browser';
@@ -23,6 +24,7 @@ export class HomeComponent implements OnInit {
 
   cuenta: AccountInfo | null = null;
   roles: string[] = [];
+  private readonly destroyRef = inject(DestroyRef);
 
   productos: Producto[] = [];
   cargandoProductos = true;
@@ -48,7 +50,10 @@ export class HomeComponent implements OnInit {
   ngOnInit(): void {
     this.cuenta = this.msalService.instance.getActiveAccount();
 
-    this.rolesService.cargar().subscribe((roles) => (this.roles = roles));
+    this.rolesService.roles$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((roles) => (this.roles = roles));
+    this.rolesService.cargar().subscribe();
 
     this.cargarProductos();
     this.cargarPedidos();
