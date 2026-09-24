@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>cl.duocuc.pedidos360</groupId>
+	<artifactId>pedidos360-backend</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>pedidos360-backend</name>
+	<description>Backend de Pedidos 360: microservicios Spring Boot (DSY1107 EP1)</description>
+
+	<!--
+	 Este pom es solo un agregador (reactor de Maven): cada microservicio
+	 mantiene su propio parent (spring-boot-starter-parent) e independencia
+	 total para compilar/desplegar por separado. "mvn test" desde aqui corre
+	 los tests de ambos modulos en un solo comando.
+	-->
+	<modules>
+		<module>ms-pedidos</module>
+		<module>ms-productos</module>
+	</modules>
+</project>
