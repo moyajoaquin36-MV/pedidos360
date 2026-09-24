@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MsalService } from '@azure/msal-angular';
 
 @Component({
   selector: 'app-login',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './login.component.html'
 })
 export class LoginComponent implements OnInit {

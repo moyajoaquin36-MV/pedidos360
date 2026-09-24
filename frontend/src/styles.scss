@@ -606,3 +606,14 @@ button:disabled {
 .fila-alerta td {
   background: #fdecea;
 }
+
+.login-alterno {
+  margin-top: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.login-alterno a {
+  color: var(--dorado-oscuro);
+  font-weight: 600;
+  text-decoration: underline;
+}

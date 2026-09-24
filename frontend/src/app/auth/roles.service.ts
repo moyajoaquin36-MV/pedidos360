@@ -28,6 +28,8 @@ export class RolesService {
         .acquireTokenSilent({ scopes: environment.azureAd.apiScopes, account: cuenta })
         .pipe(
           map((resultado) => obtenerRoles(decodificarPayloadJwt(resultado.accessToken))),
+          // Un usuario autoregistrado no trae app roles: se le trata como cliente (igual que el backend).
+          map((roles) => (roles.length > 0 ? roles : [Rol.Cliente])),
           catchError(() => of([] as string[])),
           tap((roles) => this.rolesSubject.next(roles)),
           shareReplay(1)

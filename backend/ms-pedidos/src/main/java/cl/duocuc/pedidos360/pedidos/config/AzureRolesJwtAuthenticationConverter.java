@@ -16,6 +16,10 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
  * el claim "roles" del access token, a diferencia del claim "scope" que usa
  * Spring Security por defecto. Este converter mapea "roles" a
  * GrantedAuthority con prefijo ROLE_ para poder usar hasRole()/hasAnyRole().
+ *
+ * Un usuario que se registro solo (flujo de usuario de autoregistro) no tiene
+ * app roles asignados: se le trata como CLIENTE. Los roles de personal
+ * (OPERADOR_COCINA, ADMIN_GENERAL) los asigna un administrador en Azure AD.
  */
 public class AzureRolesJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
@@ -27,8 +31,8 @@ public class AzureRolesJwtAuthenticationConverter implements Converter<Jwt, Abst
 
     private Collection<GrantedAuthority> extractRoles(Jwt jwt) {
         List<String> roles = jwt.getClaimAsStringList("roles");
-        if (roles == null) {
-            return List.of();
+        if (roles == null || roles.isEmpty()) {
+            return List.of(new SimpleGrantedAuthority("ROLE_CLIENTE"));
         }
         return roles.stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
