@@ -1,0 +1,87 @@
+<section class="hero" *ngIf="cuenta">
+  <h1>Hola, {{ cuenta.name }}</h1>
+  <p>Estas viendo el catalogo de <strong>{{ nombreLocalSeleccionado }}</strong>. Cambia de local arriba a la izquierda.</p>
+  <p class="roles-line">
+    Roles asignados (claim "roles" del token de Azure AD):
+    <span *ngFor="let rol of roles" class="tag">{{ rol }}</span>
+    <span *ngIf="roles.length === 0" class="tag tag-muted">sin app roles asignados todavia</span>
+  </p>
+</section>
+
+<section class="como-funciona" id="como-funciona" *ngIf="cuenta">
+  <h2>Como funciona la red</h2>
+  <ol>
+    <li><strong>Elige un local</strong> de los 20 asociados en el selector de arriba.</li>
+    <li><strong>Arma tu pedido</strong> agregando productos de ese local a tu carrito.</li>
+    <li><strong>Confirma y sigue el estado</strong> de tu pedido en "Mis pedidos", mientras el operador de cocina lo prepara y lo entrega.</li>
+  </ol>
+</section>
+
+<section class="catalogo" id="catalogo">
+  <h2>Catalogo &middot; {{ nombreLocalSeleccionado }}</h2>
+  <p *ngIf="cargandoProductos">Cargando productos...</p>
+  <p *ngIf="errorProductos" class="error">{{ errorProductos }}</p>
+
+  <div class="grid-productos" *ngIf="!cargandoProductos && !errorProductos">
+    <article class="card-producto" *ngFor="let producto of productosDelLocal">
+      <h3>{{ producto.nombre }}</h3>
+      <p class="precio">{{ producto.precio | currency: 'CLP' }}</p>
+      <p class="stock">Stock disponible: {{ producto.stock }}</p>
+      <button *ngIf="puedeComprar" type="button" (click)="agregarAlCarrito(producto)">Agregar al carrito</button>
+    </article>
+
+    <p *ngIf="productosDelLocal.length === 0" class="dropdown-sub">
+      Este local todavia no tiene productos cargados.
+    </p>
+  </div>
+
+</section>
+
+<section class="checkout" id="checkout" *ngIf="puedeComprar">
+  <h2>Tu carrito</h2>
+  <ng-container *ngIf="(carrito.items$ | async) as items">
+    <ul *ngIf="items.length > 0" class="lista-carrito">
+      <li *ngFor="let item of items">
+        <span>{{ item.producto.nombre }}</span>
+        <span class="cantidad-controles">
+          <button type="button" (click)="carrito.actualizarCantidad(item.producto.id, item.cantidad - 1)">-</button>
+          {{ item.cantidad }}
+          <button type="button" (click)="carrito.actualizarCantidad(item.producto.id, item.cantidad + 1)">+</button>
+        </span>
+        <span>{{ item.producto.precio * item.cantidad | currency: 'CLP' }}</span>
+        <button type="button" (click)="carrito.quitar(item.producto.id)">Quitar</button>
+      </li>
+    </ul>
+    <p *ngIf="items.length === 0" class="dropdown-sub">Agrega productos del catalogo para armar tu pedido.</p>
+
+    <div *ngIf="items.length > 0" class="checkout-actions">
+      <label>
+        Modalidad de entrega
+        <select [(ngModel)]="modalidadEntrega">
+          <option value="RETIRO_EN_TIENDA">Retiro en tienda</option>
+          <option value="DELIVERY">Delivery</option>
+        </select>
+      </label>
+      <p class="total">Total: {{ carrito.totalMonto | currency: 'CLP' }}</p>
+      <button type="button" (click)="confirmarPedido()" [disabled]="creandoPedido">
+        {{ creandoPedido ? 'Enviando pedido...' : 'Confirmar pedido' }}
+      </button>
+    </div>
+    <p *ngIf="errorCrearPedido" class="error">{{ errorCrearPedido }}</p>
+  </ng-container>
+</section>
+
+<section class="mis-pedidos" id="mis-pedidos">
+  <h2>{{ tituloPedidos }}</h2>
+  <p *ngIf="cargandoPedidos">Consultando...</p>
+  <p *ngIf="errorPedidos" class="error">{{ errorPedidos }}</p>
+  <ul *ngIf="!cargandoPedidos && !errorPedidos">
+    <li *ngFor="let pedido of pedidos">
+      #{{ pedido.id }} &middot; {{ pedido.estado }} &middot; {{ pedido.localId }} &middot; {{ pedido.total | currency: 'CLP' }}
+      <ng-container *ngIf="puedeGestionarPedidos && siguienteEstado(pedido.estado) as sig">
+        <button type="button" (click)="avanzarPedido(pedido)">Pasar a {{ sig }}</button>
+      </ng-container>
+    </li>
+    <li *ngIf="pedidos.length === 0">Sin pedidos registrados aun.</li>
+  </ul>
+</section>

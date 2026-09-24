@@ -1,0 +1,98 @@
+<div class="topbar">Red de 20 locales asociados &mdash; hace tu pedido en un solo lugar</div>
+
+<div class="header-main">
+  <a routerLink="/home" class="logo">PEDIDOS<span>360</span></a>
+
+  <label class="local-selector">
+    <span class="local-selector-label">¿Donde quieres pedir?</span>
+    <select (change)="seleccionarLocal($any($event.target).value)">
+      <option *ngFor="let local of locales" [value]="local.id" [selected]="local.id === localSeleccionado.actual">
+        {{ local.nombre }} &middot; {{ local.comuna }}
+      </option>
+    </select>
+  </label>
+
+  <nav class="nav-links">
+    <a routerLink="/home" fragment="catalogo">Categorias</a>
+    <a routerLink="/home" fragment="como-funciona">Como funciona</a>
+  </nav>
+
+  <div class="header-actions">
+    <button type="button" class="icon-btn" title="Buscar" aria-label="Buscar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+    </button>
+
+    <div class="menu-wrapper">
+      <button
+        type="button"
+        class="icon-btn"
+        title="Cuenta"
+        aria-label="Cuenta"
+        (click)="menuCuentaAbierto = !menuCuentaAbierto; menuCarritoAbierto = false"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </button>
+      <div class="dropdown" *ngIf="menuCuentaAbierto">
+        <ng-container *ngIf="cuenta; else noLogueado">
+          <p class="dropdown-title">{{ cuenta.name }}</p>
+          <p class="dropdown-sub">{{ cuenta.username }}</p>
+          <a
+            *ngIf="roles.esAdmin$ | async"
+            routerLink="/admin"
+            class="btn-admin"
+            (click)="menuCuentaAbierto = false"
+          >
+            Panel de administracion
+          </a>
+          <button type="button" (click)="cerrarSesion()">Cerrar sesion</button>
+        </ng-container>
+        <ng-template #noLogueado>
+          <button type="button" (click)="iniciarSesion()">Iniciar sesion</button>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="menu-wrapper">
+      <button
+        type="button"
+        class="icon-btn"
+        title="Carrito"
+        aria-label="Carrito"
+        (click)="menuCarritoAbierto = !menuCarritoAbierto; menuCuentaAbierto = false"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="9" cy="21" r="1" />
+          <circle cx="20" cy="21" r="1" />
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+        </svg>
+        <span class="badge" *ngIf="carrito.totalItems > 0">{{ carrito.totalItems }}</span>
+      </button>
+      <div class="dropdown cart-dropdown" *ngIf="menuCarritoAbierto">
+        <ng-container *ngIf="(carrito.items$ | async) as items">
+          <p *ngIf="items.length === 0" class="dropdown-sub">Tu carrito esta vacio.</p>
+          <ul *ngIf="items.length > 0">
+            <li *ngFor="let item of items">
+              {{ item.cantidad }}x {{ item.producto.nombre }} &mdash; {{ item.producto.precio * item.cantidad | currency: 'CLP' }}
+            </li>
+          </ul>
+          <p *ngIf="items.length > 0" class="dropdown-total">Total: {{ carrito.totalMonto | currency: 'CLP' }}</p>
+          <a
+            *ngIf="items.length > 0"
+            routerLink="/home"
+            fragment="checkout"
+            class="dropdown-link"
+            (click)="menuCarritoAbierto = false"
+          >
+            Ir a confirmar pedido
+          </a>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>
