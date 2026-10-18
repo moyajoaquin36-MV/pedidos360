@@ -1,0 +1,123 @@
+{
+  "info": {
+    "name": "Pedidos 360 - API Gateway",
+    "description": "Evidencia de cada ruta del AWS API Gateway. Antes de correr: pegar un access token valido en la variable 'token' (ver docs/api-gateway.md).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://ng3zai38m7.execute-api.us-east-1.amazonaws.com" },
+    { "key": "token", "value": "" },
+    { "key": "productoId", "value": "1" },
+    { "key": "pedidoId", "value": "1" }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName.startsWith('Sin token')) return;",
+          "pm.test('Responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+          "pm.test('Devuelve JSON', () => pm.response.to.be.json);"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "ms-productos",
+      "item": [
+        {
+          "name": "GET /api/productos",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const lista = pm.response.json();",
+            "pm.test('Es una lista', () => pm.expect(lista).to.be.an('array'));",
+            "if (lista.length) pm.collectionVariables.set('productoId', lista[0].id);"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/productos" }
+        },
+        {
+          "name": "GET /api/productos/{id}",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/productos/{{productoId}}" }
+        },
+        {
+          "name": "POST /api/productos (ADMIN_GENERAL)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"localId\": \"local-01\",\n  \"sku\": \"local-01-PRUEBA-{{$timestamp}}\",\n  \"nombre\": \"Producto de prueba\",\n  \"precio\": 1500,\n  \"stock\": 10\n}" },
+            "url": "{{baseUrl}}/api/productos"
+          }
+        },
+        {
+          "name": "PATCH /api/productos/{id}/stock (OPERADOR_COCINA / ADMIN_GENERAL)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 1\n}" },
+            "url": "{{baseUrl}}/api/productos/{{productoId}}/stock"
+          }
+        },
+        {
+          "name": "PATCH /api/productos/{id}/reposicion (ADMIN_GENERAL)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cantidad\": 5\n}" },
+            "url": "{{baseUrl}}/api/productos/{{productoId}}/reposicion"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ms-pedidos",
+      "item": [
+        {
+          "name": "POST /api/pedidos (CLIENTE)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.collectionVariables.set('pedidoId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"localId\": \"local-01\",\n  \"modalidadEntrega\": \"RETIRO_EN_TIENDA\",\n  \"items\": [\n    { \"productoId\": {{productoId}}, \"nombreProducto\": \"Producto\", \"cantidad\": 1, \"precioUnitario\": 1500 }\n  ]\n}" },
+            "url": "{{baseUrl}}/api/pedidos"
+          }
+        },
+        {
+          "name": "GET /api/pedidos",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pedidos" }
+        },
+        {
+          "name": "GET /api/pedidos/{id}",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/pedidos/{{pedidoId}}" }
+        },
+        {
+          "name": "PATCH /api/pedidos/{id}/estado (OPERADOR_COCINA / ADMIN_GENERAL)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": \"EN_PREPARACION\"\n}" },
+            "url": "{{baseUrl}}/api/pedidos/{{pedidoId}}/estado"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Seguridad",
+      "item": [
+        {
+          "name": "Sin token -> 401 (el Gateway rechaza)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('El Gateway responde 401', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": { "method": "GET", "auth": { "type": "noauth" }, "url": "{{baseUrl}}/api/productos" }
+        }
+      ]
+    }
+  ]
+}
