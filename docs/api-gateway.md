@@ -26,9 +26,16 @@ Angular (MSAL)  --Bearer JWT-->  API Gateway  --valida iss/aud/firma-->  EC2 :80
 de ms-pedidos a ms-productos por la red de Docker (`http://ms-productos:8080`, ver
 `ProductosClient.java`). Exponerla permitiria a cualquiera descontar stock sin crear pedido.
 
+**Frontend**: `GET /` y `GET /{proxy+}` (sin authorizer) → nginx en `http://<EC2>:80`.
+Son `GET` y no `ANY` a proposito: un `ANY /{proxy+}` captura tambien los `OPTIONS`
+y el preflight terminaba en nginx (405) en vez de responderlo el Gateway.
+
 **No se crean rutas `OPTIONS`**: el preflight de CORS lo responde el Gateway solo
-(seccion 3). Si existiera una ruta que capture `OPTIONS` con authorizer, el preflight
-daria 401 porque el navegador no manda token en el preflight.
+(204, seccion 3). Si una ruta capturara `OPTIONS`, el preflight iria al backend o
+al authorizer (401, porque el navegador no manda token en el preflight).
+
+**IP de la EC2**: el Learner Lab cambia la IP publica cada vez que se reinicia el lab.
+Si el Gateway responde 503, actualizar la IP en todas las integraciones.
 
 ## 2. JWT Authorizer (asociado a las 9 rutas)
 
@@ -53,7 +60,7 @@ El Gateway valida **firma, expiracion, issuer, audience y scope**. Los roles
 
 | Campo | Valor |
 |---|---|
-| Access-Control-Allow-Origin | URL del frontend (ej. `http://<EC2>`) y `http://localhost:4200` |
+| Access-Control-Allow-Origin | `https://ng3zai38m7.execute-api.us-east-1.amazonaws.com` (el frontend se sirve por el mismo Gateway, rutas `ANY /` y `ANY /{proxy+}`) y `http://localhost:4200` |
 | Access-Control-Allow-Methods | `GET, POST, PATCH, OPTIONS` |
 | Access-Control-Allow-Headers | `authorization, content-type` |
 | Max age | `3600` |
