@@ -1,6 +1,8 @@
 package cl.duocuc.pedidos360.productos.controller;
 
+import cl.duocuc.pedidos360.productos.mensajeria.productor.InventarioEventosPublisher;
 import cl.duocuc.pedidos360.productos.repository.ProductoRepository;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,9 @@ class ProductoControllerTest {
 
     @Autowired
     private ProductoRepository productoRepository;
+
+    @MockitoBean
+    private InventarioEventosPublisher eventos;
 
     @BeforeEach
     void limpiarDatos() {

@@ -8,8 +8,30 @@ spring:
     hibernate:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
+  # Los tests no levantan RabbitMQ: los listeners no se inician.
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
 
 azure:
   ad:
     tenant-id: common
     client-id: test-client-id
+
+# Nombres de exchanges, colas y routing keys (ver mensajeria/config/RabbitConfig).
+mensajeria:
+  exchanges:
+    topic: pedidos360.topic
+  colas:
+    alertas-stock: inventario.alertas
+  routing-keys:
+    stock-bajo: producto.stock.bajo
+    stock-binding: producto.stock.*
+  # Cada cola: <cola>.dlx (fanout) -> <cola>.dlq, que guarda los mensajes muertos 24 h.
+  dead-letter:
+    sufijo-dlx: .dlx
+    sufijo-dlq: .dlq
+    ttl-dlq-ms: 86400000
+  # Con stock igual o menor a esto se publica una alerta.
+  umbral-stock-bajo: 5

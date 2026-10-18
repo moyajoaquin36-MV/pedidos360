@@ -1,0 +1,26 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: ms-rabbit-admin
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+# Convenciones del control plane (ver RabbitAdminProperties).
+rabbit-admin:
+  dead-letter:
+    sufijo-dlx: .dlx
+    sufijo-dlq: .dlq
+    ttl-dlq-ms: 86400000
+  topologia:
+    sufijo-exchange: .exchange
+    sufijo-cola: .queue
+    sufijo-routing-key: .created
+
+azure:
+  ad:
+    tenant-id: ${AZURE_TENANT_ID:00000000-0000-0000-0000-000000000000}
+    client-id: ${AZURE_CLIENT_ID:00000000-0000-0000-0000-000000000000}

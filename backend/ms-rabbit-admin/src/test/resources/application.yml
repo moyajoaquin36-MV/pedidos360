@@ -1,0 +1,15 @@
+# Convenciones del control plane (ver RabbitAdminProperties).
+rabbit-admin:
+  dead-letter:
+    sufijo-dlx: .dlx
+    sufijo-dlq: .dlq
+    ttl-dlq-ms: 86400000
+  topologia:
+    sufijo-exchange: .exchange
+    sufijo-cola: .queue
+    sufijo-routing-key: .created
+
+azure:
+  ad:
+    tenant-id: common
+    client-id: test-client-id

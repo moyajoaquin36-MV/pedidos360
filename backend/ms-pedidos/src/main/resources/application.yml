@@ -13,6 +13,37 @@ spring:
       ddl-auto: update
     show-sql: false
     open-in-view: false
+  # Cluster de 2 nodos: si uno cae, el cliente se conecta al otro.
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        # Fair dispatch: un mensaje sin confirmar a la vez por consumidor.
+        prefetch: 1
+
+# Nombres de exchanges, colas y routing keys (ver mensajeria/config/RabbitConfig).
+mensajeria:
+  exchanges:
+    direct: pedidos360.direct
+    topic: pedidos360.topic
+  colas:
+    tickets: pedidos.tickets
+    notificaciones: notificaciones.pedidos
+  routing-keys:
+    pedido-creado: pedido.creado
+    estado-pedido: pedido.estado
+    estado-pedido-binding: pedido.estado.*
+  # Cada cola: <cola>.dlx (fanout) -> <cola>.dlq, que guarda los mensajes muertos 24 h.
+  dead-letter:
+    sufijo-dlx: .dlx
+    sufijo-dlq: .dlq
+    ttl-dlq-ms: 86400000
 
 # Datos del tenant de Azure AD (Entra ID). Reemplazar por los valores reales
 # una vez creado el tenant (ver guia "Creacion de tenant") y registrada la app.

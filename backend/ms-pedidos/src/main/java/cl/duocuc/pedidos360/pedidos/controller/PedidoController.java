@@ -6,6 +6,7 @@ import cl.duocuc.pedidos360.pedidos.domain.Pedido;
 import cl.duocuc.pedidos360.pedidos.dto.ActualizarEstadoRequest;
 import cl.duocuc.pedidos360.pedidos.dto.CrearPedidoRequest;
 import cl.duocuc.pedidos360.pedidos.dto.PedidoResponse;
+import cl.duocuc.pedidos360.pedidos.mensajeria.productor.PedidoEventosPublisher;
 import cl.duocuc.pedidos360.pedidos.repository.PedidoRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -39,10 +40,13 @@ public class PedidoController {
 
     private final PedidoRepository pedidoRepository;
     private final ProductosClient productosClient;
+    private final PedidoEventosPublisher eventos;
 
-    public PedidoController(PedidoRepository pedidoRepository, ProductosClient productosClient) {
+    public PedidoController(PedidoRepository pedidoRepository, ProductosClient productosClient,
+                            PedidoEventosPublisher eventos) {
         this.pedidoRepository = pedidoRepository;
         this.productosClient = productosClient;
+        this.eventos = eventos;
     }
 
     /**
@@ -94,6 +98,7 @@ public class PedidoController {
         });
 
         Pedido guardado = pedidoRepository.save(pedido);
+        eventos.pedidoCreado(guardado);
         return ResponseEntity.status(HttpStatus.CREATED).body(PedidoResponse.from(guardado));
     }
 
@@ -101,7 +106,9 @@ public class PedidoController {
     public PedidoResponse actualizarEstado(@PathVariable Long id, @Valid @RequestBody ActualizarEstadoRequest request) {
         Pedido pedido = buscarOFallar(id);
         pedido.cambiarEstado(request.estado());
-        return PedidoResponse.from(pedidoRepository.save(pedido));
+        Pedido guardado = pedidoRepository.save(pedido);
+        eventos.estadoCambiado(guardado);
+        return PedidoResponse.from(guardado);
     }
 
     private Pedido buscarOFallar(Long id) {
