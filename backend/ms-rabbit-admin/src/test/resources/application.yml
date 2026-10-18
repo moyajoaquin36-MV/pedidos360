@@ -1,0 +1,8 @@
+rabbit-admin:
+  dead-letter-exchange: pedidos360.dlx
+  sufijo-dlq: .dlq
+
+azure:
+  ad:
+    tenant-id: common
+    client-id: test-client-id

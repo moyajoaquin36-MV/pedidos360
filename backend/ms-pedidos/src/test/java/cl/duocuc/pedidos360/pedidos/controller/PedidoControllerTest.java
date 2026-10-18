@@ -1,6 +1,7 @@
 package cl.duocuc.pedidos360.pedidos.controller;
 
 import cl.duocuc.pedidos360.pedidos.client.ProductosClient;
+import cl.duocuc.pedidos360.pedidos.mensajeria.productor.PedidoEventosPublisher;
 import cl.duocuc.pedidos360.pedidos.repository.PedidoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,9 @@ class PedidoControllerTest {
 
     @MockitoBean
     private ProductosClient productosClient;
+
+    @MockitoBean
+    private PedidoEventosPublisher eventos;
 
     @BeforeEach
     void limpiarDatos() {

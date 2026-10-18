@@ -1,0 +1,20 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: ms-rabbit-admin
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+# Se usan al crear una cola con DLQ (mismos valores que ms-pedidos y ms-productos).
+rabbit-admin:
+  dead-letter-exchange: pedidos360.dlx
+  sufijo-dlq: .dlq
+
+azure:
+  ad:
+    tenant-id: ${AZURE_TENANT_ID:00000000-0000-0000-0000-000000000000}
+    client-id: ${AZURE_CLIENT_ID:00000000-0000-0000-0000-000000000000}

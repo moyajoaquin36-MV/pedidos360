@@ -19,5 +19,6 @@
 	<modules>
 		<module>ms-pedidos</module>
 		<module>ms-productos</module>
+		<module>ms-rabbit-admin</module>
 	</modules>
 </project>
