@@ -72,8 +72,17 @@ Con CORS configurado, el HTTP API ignora los headers CORS que devuelva el backen
 - **Pedidos360-Frontend → Authentication**: solo plataforma **Single-page application**
   (redirect URIs: URL del frontend y `http://localhost:4200`). Sin plataforma *Web*.
   *Implicit grant*: los dos checkbox **desmarcados** → queda solo Authorization Code + PKCE.
-- **Pedidos360-API → App roles**: `CLIENTE`, `OPERADOR_COCINA`, `ADMIN_GENERAL`.
-- **Enterprise applications → Pedidos360-API → Users and groups**: un usuario de prueba por rol.
+- **Pedidos360-API → App roles**: `CLIENTE`, `OPERADOR_COCINA`, `ADMIN_GENERAL`
+  (`ADMIN_LOCAL` y `REPARTIDOR` quedaron desactivados: el sistema no los usa).
+- **Enterprise applications → Pedidos360-API → Users and groups**: un usuario de prueba por rol:
+
+  | Usuario | Rol |
+  |---|---|
+  | `cliente@pedidos360dsy110736.onmicrosoft.com` | CLIENTE |
+  | `operador@pedidos360dsy110736.onmicrosoft.com` | OPERADOR_COCINA |
+  | cuenta del alumno (invitada) | ADMIN_GENERAL |
+
+  Un usuario sin rol asignado entra como CLIENTE (`AzureRolesJwtAuthenticationConverter`).
 - **Flujo de usuario de registro** (sign up) asociado a Pedidos360-Frontend.
 
 ## 5. Evidencias con Postman
