@@ -6,6 +6,7 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.ExchangeBuilder;
+import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
@@ -22,8 +23,8 @@ import org.springframework.context.annotation.Configuration;
  * Rutas de mensajeria:
  *  1. Ticket:        pedidos360.direct --pedido.creado-->    pedidos.tickets
  *  2. Notificacion:  pedidos360.topic  --pedido.estado.*-->  notificaciones.pedidos
- *  Cada cola tiene su DLQ: pedidos360.dlx --<cola>.dlq--> <cola>.dlq
- *  (un mensaje rechazado con NACK sin requeue cae en su DLQ).
+ *  Cada cola tiene su DLX fanout y su DLQ: <cola>.dlx --> <cola>.dlq (TTL 24 h).
+ *  Un mensaje rechazado con NACK sin requeue cae en su DLQ y ahi queda para revisarlo.
  */
 @Configuration
 public class RabbitConfig {
@@ -48,11 +49,6 @@ public class RabbitConfig {
         return ExchangeBuilder.topicExchange(props.exchanges().topic()).durable(true).build();
     }
 
-    @Bean
-    public DirectExchange deadLetterExchange() {
-        return ExchangeBuilder.directExchange(props.exchanges().deadLetter()).durable(true).build();
-    }
-
     // ---- Ruta 1: ticket del pedido (exchange direct) ----
 
     @Bean
@@ -61,8 +57,13 @@ public class RabbitConfig {
     }
 
     @Bean
+    public FanoutExchange ticketsDlx() {
+        return dlx(props.colas().tickets());
+    }
+
+    @Bean
     public Queue colaTicketsDlq() {
-        return QueueBuilder.durable(props.dlq(props.colas().tickets())).build();
+        return dlq(props.colas().tickets());
     }
 
     @Bean
@@ -72,7 +73,7 @@ public class RabbitConfig {
 
     @Bean
     public Binding bindingTicketsDlq() {
-        return BindingBuilder.bind(colaTicketsDlq()).to(deadLetterExchange()).with(props.dlq(props.colas().tickets()));
+        return BindingBuilder.bind(colaTicketsDlq()).to(ticketsDlx());
     }
 
     // ---- Ruta 2: notificacion de cambio de estado (exchange topic) ----
@@ -83,8 +84,13 @@ public class RabbitConfig {
     }
 
     @Bean
+    public FanoutExchange notificacionesDlx() {
+        return dlx(props.colas().notificaciones());
+    }
+
+    @Bean
     public Queue colaNotificacionesDlq() {
-        return QueueBuilder.durable(props.dlq(props.colas().notificaciones())).build();
+        return dlq(props.colas().notificaciones());
     }
 
     @Bean
@@ -94,7 +100,7 @@ public class RabbitConfig {
 
     @Bean
     public Binding bindingNotificacionesDlq() {
-        return BindingBuilder.bind(colaNotificacionesDlq()).to(deadLetterExchange()).with(props.dlq(props.colas().notificaciones()));
+        return BindingBuilder.bind(colaNotificacionesDlq()).to(notificacionesDlx());
     }
 
     // ---- Conversion y callbacks del productor ----
@@ -119,10 +125,20 @@ public class RabbitConfig {
         };
     }
 
+    /** Cola principal: los mensajes rechazados (NACK sin requeue) se van a su DLX. */
     private Queue colaConDlq(String nombre) {
         return QueueBuilder.durable(nombre)
-                .deadLetterExchange(props.exchanges().deadLetter())
-                .deadLetterRoutingKey(props.dlq(nombre))
+                .deadLetterExchange(props.dlx(nombre))
                 .build();
+    }
+
+    /** DLX fanout: reenvia todo mensaje muerto a la DLQ enlazada, sin routing key. */
+    private FanoutExchange dlx(String cola) {
+        return ExchangeBuilder.fanoutExchange(props.dlx(cola)).durable(true).build();
+    }
+
+    /** DLQ (cuarentena): guarda el mensaje muerto durante el TTL configurado para revisarlo. */
+    private Queue dlq(String cola) {
+        return QueueBuilder.durable(props.dlq(cola)).ttl((int) props.deadLetter().ttlDlqMs()).build();
     }
 }

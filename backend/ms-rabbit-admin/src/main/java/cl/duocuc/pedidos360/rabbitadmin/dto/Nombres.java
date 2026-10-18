@@ -11,6 +11,10 @@ public final class Nombres {
     public static final String PATRON_ROUTING_KEY = "^[A-Za-z0-9._*#-]{0,200}$";
     public static final String MENSAJE_ROUTING_KEY = "solo letras, numeros, '.', '_', '-', '*' o '#' (hasta 200 caracteres)";
 
+    /** Dominio de una topologia (ej. "orders"): minusculas, numeros y '-', sin puntos. */
+    public static final String PATRON_DOMINIO = "^[a-z0-9-]{1,50}$";
+    public static final String MENSAJE_DOMINIO = "solo minusculas, numeros o '-' (1 a 50 caracteres)";
+
     private Nombres() {
     }
 }

@@ -23,12 +23,15 @@ azure:
 mensajeria:
   exchanges:
     topic: pedidos360.topic
-    dead-letter: pedidos360.dlx
   colas:
     alertas-stock: inventario.alertas
   routing-keys:
     stock-bajo: producto.stock.bajo
     stock-binding: producto.stock.*
-  sufijo-dlq: .dlq
+  # Cada cola: <cola>.dlx (fanout) -> <cola>.dlq, que guarda los mensajes muertos 24 h.
+  dead-letter:
+    sufijo-dlx: .dlx
+    sufijo-dlq: .dlq
+    ttl-dlq-ms: 86400000
   # Con stock igual o menor a esto se publica una alerta.
   umbral-stock-bajo: 5

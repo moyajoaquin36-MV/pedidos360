@@ -34,13 +34,13 @@ class RabbitAdminControllerTest {
 
     @Test
     void sinTokenRetorna401() throws Exception {
-        mockMvc.perform(post("/api/rabbit/queues").contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"prueba\"}"))
+        mockMvc.perform(post("/api/rabbitmq/queues").contentType(MediaType.APPLICATION_JSON).content("{\"nombre\":\"prueba\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void clienteNoPuedeAdministrarColas() throws Exception {
-        mockMvc.perform(conRol(post("/api/rabbit/queues"), "CLIENTE").content("{\"nombre\":\"prueba\"}"))
+        mockMvc.perform(conRol(post("/api/rabbitmq/queues"), "CLIENTE").content("{\"nombre\":\"prueba\"}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -48,37 +48,46 @@ class RabbitAdminControllerTest {
     void adminCreaCola() throws Exception {
         when(service.crearCola(any())).thenReturn(new ColaResponse("prueba", 0, 0, "prueba.dlq"));
 
-        mockMvc.perform(conRol(post("/api/rabbit/queues"), "ADMIN_GENERAL").content("{\"nombre\":\"prueba\"}"))
+        mockMvc.perform(conRol(post("/api/rabbitmq/queues"), "ADMIN_GENERAL").content("{\"nombre\":\"prueba\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.dlq").value("prueba.dlq"));
     }
 
     @Test
     void nombreVacioOReservadoSeRechaza() throws Exception {
-        mockMvc.perform(conRol(post("/api/rabbit/queues"), "ADMIN_GENERAL").content("{\"nombre\":\"\"}"))
+        mockMvc.perform(conRol(post("/api/rabbitmq/queues"), "ADMIN_GENERAL").content("{\"nombre\":\"\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errores.nombre").exists());
-        mockMvc.perform(conRol(post("/api/rabbit/queues"), "ADMIN_GENERAL").content("{\"nombre\":\"amq.mia\"}"))
+        mockMvc.perform(conRol(post("/api/rabbitmq/queues"), "ADMIN_GENERAL").content("{\"nombre\":\"amq.mia\"}"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(conRol(delete("/api/rabbit/queues/amq.mia"), "ADMIN_GENERAL"))
+        mockMvc.perform(conRol(delete("/api/rabbitmq/queues/amq.mia"), "ADMIN_GENERAL"))
                 .andExpect(status().isBadRequest());
         verify(service, never()).crearCola(any());
     }
 
     @Test
     void tipoDeExchangeInvalidoSeRechaza() throws Exception {
-        mockMvc.perform(conRol(post("/api/rabbit/exchanges"), "ADMIN_GENERAL").content("{\"nombre\":\"x\",\"tipo\":\"RARO\"}"))
+        mockMvc.perform(conRol(post("/api/rabbitmq/exchanges"), "ADMIN_GENERAL").content("{\"nombre\":\"x\",\"tipo\":\"RARO\"}"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(conRol(post("/api/rabbit/exchanges"), "ADMIN_GENERAL").content("{\"nombre\":\"x\"}"))
+        mockMvc.perform(conRol(post("/api/rabbitmq/exchanges"), "ADMIN_GENERAL").content("{\"nombre\":\"x\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errores.tipo").exists());
     }
 
     @Test
     void bindingSinRoutingKeySeRechaza() throws Exception {
-        mockMvc.perform(conRol(post("/api/rabbit/bindings"), "ADMIN_GENERAL").content("{\"exchange\":\"x\",\"cola\":\"y\"}"))
+        mockMvc.perform(conRol(post("/api/rabbitmq/bindings"), "ADMIN_GENERAL").content("{\"exchange\":\"x\",\"cola\":\"y\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errores.routingKey").exists());
+    }
+
+    @Test
+    void topologiaExigeDominioValido() throws Exception {
+        mockMvc.perform(conRol(post("/api/rabbitmq/topology"), "ADMIN_GENERAL"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(conRol(post("/api/rabbitmq/topology?dominio=Con.Punto"), "ADMIN_GENERAL"))
+                .andExpect(status().isBadRequest());
+        verify(service, never()).crearTopologia(any());
     }
 
     private MockHttpServletRequestBuilder conRol(MockHttpServletRequestBuilder request, String rol) {

@@ -10,9 +10,9 @@ AWS API Gateway  ── valida el JWT (issuer + audience de Azure AD)
    ├── /api/pedidos   ──►  ms-pedidos   ──►  BD ms_pedidos_db
    │                          │  (al crear un pedido descuenta stock)
    ├── /api/productos ──►  ms-productos ──►  BD ms_productos_db
-   └── /api/rabbit    ──►  ms-rabbit-admin (crea/borra colas, exchanges, bindings)
+   └── /api/rabbitmq  ──►  ms-rabbit-admin (crea/borra colas, exchanges, bindings)
 
-ms-pedidos / ms-productos ──eventos──►  RabbitMQ (cluster rabbitmq1 + rabbitmq2)
+ms-pedidos / ms-productos ──eventos──►  RabbitMQ (cluster rabbitmq-1 + rabbitmq-2)
         (todo corre en Docker sobre una EC2)
 ```
 
@@ -54,11 +54,12 @@ sin frenar la respuesta al usuario. Si RabbitMQ falla, el pedido igual se crea (
 | 2 | `notificaciones.pedidos` | `pedidos360.topic` (topic) | `pedido.estado.*` | ms-pedidos -> `NotificacionEstadoConsumer` | Avisar al cliente cada cambio de estado |
 | 3 | `inventario.alertas` | `pedidos360.topic` (topic) | `producto.stock.*` | ms-productos -> `AlertaStockConsumer` | Alertar stock bajo (<= 5) |
 
-Cada cola tiene `x-dead-letter-exchange = pedidos360.dlx` y su DLQ `<cola>.dlq`.
+Cada cola tiene su propio DLX fanout `<cola>.dlx` (`x-dead-letter-exchange`) y su DLQ `<cola>.dlq` con TTL de 24 h
+(politica de retencion: el mensaje muerto queda guardado para revisarlo). Prefetch = 1 (fair dispatch).
 
 **ACK manual** (`ConfirmacionMensajes`): procesado bien -> `ack`; JSON invalido o datos incompletos -> `nack` sin requeue
 (va directo a la DLQ, reintentar no sirve); otro error -> se reintenta **una** vez y si vuelve a fallar va a la DLQ.
-Todo envio a DLQ queda en el log con el cuerpo del mensaje. Los mensajes que el broker no puede enrutar tambien se
+Todo envio a DLQ queda en el log como `[ALERTA DLQ]` con el cuerpo del mensaje. Los mensajes que el broker no puede enrutar tambien se
 registran (`publisher-returns` + `mandatory`).
 
 **Donde esta** (mismo esquema en ms-pedidos y ms-productos):
@@ -70,11 +71,12 @@ registran (`publisher-returns` + `mandatory`).
 | `productor/` | `PedidoEventosPublisher` / `InventarioEventosPublisher`: lo unico que usan los controllers |
 | `consumidor/<dominio>/` | Los `@RabbitListener` agrupados por dominio (ticket, notificacion, alerta) |
 
-**ms-rabbit-admin** (control plane, solo ADMIN_GENERAL): `POST/DELETE /api/rabbit/queues`, `GET /api/rabbit/queues/{nombre}`,
-`POST/DELETE /api/rabbit/exchanges`, `POST/DELETE /api/rabbit/bindings`. Toda la logica esta en `RabbitAdminService`;
+**ms-rabbit-admin** (control plane, solo ADMIN_GENERAL): `POST/DELETE /api/rabbitmq/queues`, `GET /api/rabbitmq/queues/{nombre}`,
+`POST /api/rabbitmq/queues/{nombre}/purge`, `POST/DELETE /api/rabbitmq/exchanges`, `POST/DELETE /api/rabbitmq/bindings` y
+`POST /api/rabbitmq/topology?dominio=x` (crea `x.exchange`, `x.queue`, `x.dlx`, `x.dlq`). Toda la logica esta en `RabbitAdminService`;
 los DTO validan nombres (no vacios, sin el prefijo reservado `amq.`, tipo DIRECT/TOPIC/FANOUT).
 
-**Cluster**: `rabbitmq1` + `rabbitmq2` en `docker-compose.aws.yml`, unidos por `deploy/rabbitmq/cluster.conf` y el mismo
+**Cluster**: `rabbitmq-1` + `rabbitmq-2` en `docker-compose.aws.yml`, unidos por `rabbitmq.conf` (classic config) y el mismo
 Erlang cookie. Los microservicios se conectan a ambos (`RABBITMQ_ADDRESSES`). Consola: puerto 15672 (nodo 1) y 15673 (nodo 2).
 
 ## Correr / probar

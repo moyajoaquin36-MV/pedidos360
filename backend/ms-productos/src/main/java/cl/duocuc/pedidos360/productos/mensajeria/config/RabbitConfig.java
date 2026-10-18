@@ -4,8 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.ExchangeBuilder;
+import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
@@ -21,8 +21,8 @@ import org.springframework.context.annotation.Configuration;
  *
  * Ruta de mensajeria:
  *  3. Alerta de stock: pedidos360.topic --producto.stock.*--> inventario.alertas
- *  DLQ: pedidos360.dlx --inventario.alertas.dlq--> inventario.alertas.dlq
- *  (el exchange topic y el dlx son los mismos que declara ms-pedidos).
+ *  DLX fanout y DLQ: inventario.alertas.dlx --> inventario.alertas.dlq (TTL 24 h).
+ *  (el exchange topic es el mismo que declara ms-pedidos).
  */
 @Configuration
 public class RabbitConfig {
@@ -40,23 +40,26 @@ public class RabbitConfig {
         return ExchangeBuilder.topicExchange(props.exchanges().topic()).durable(true).build();
     }
 
+    /** DLX fanout: reenvia todo mensaje muerto a la DLQ enlazada, sin routing key. */
     @Bean
-    public DirectExchange deadLetterExchange() {
-        return ExchangeBuilder.directExchange(props.exchanges().deadLetter()).durable(true).build();
+    public FanoutExchange alertasStockDlx() {
+        return ExchangeBuilder.fanoutExchange(props.dlx(props.colas().alertasStock())).durable(true).build();
     }
 
     @Bean
     public Queue colaAlertasStock() {
         String nombre = props.colas().alertasStock();
         return QueueBuilder.durable(nombre)
-                .deadLetterExchange(props.exchanges().deadLetter())
-                .deadLetterRoutingKey(props.dlq(nombre))
+                .deadLetterExchange(props.dlx(nombre))
                 .build();
     }
 
+    /** DLQ (cuarentena): guarda el mensaje muerto durante el TTL configurado para revisarlo. */
     @Bean
     public Queue colaAlertasStockDlq() {
-        return QueueBuilder.durable(props.dlq(props.colas().alertasStock())).build();
+        return QueueBuilder.durable(props.dlq(props.colas().alertasStock()))
+                .ttl((int) props.deadLetter().ttlDlqMs())
+                .build();
     }
 
     @Bean
@@ -66,7 +69,7 @@ public class RabbitConfig {
 
     @Bean
     public Binding bindingAlertasStockDlq() {
-        return BindingBuilder.bind(colaAlertasStockDlq()).to(deadLetterExchange()).with(props.dlq(props.colas().alertasStock()));
+        return BindingBuilder.bind(colaAlertasStockDlq()).to(alertasStockDlx());
     }
 
     @Bean

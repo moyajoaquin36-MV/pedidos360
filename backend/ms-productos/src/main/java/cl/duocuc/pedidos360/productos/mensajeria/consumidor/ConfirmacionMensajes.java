@@ -21,7 +21,8 @@ import java.util.function.Consumer;
  *  - JSON invalido o datos incompletos    -> basicNack sin requeue -> DLQ (no tiene arreglo).
  *  - Otro error, primera entrega          -> basicNack con requeue (un reintento).
  *  - Otro error, ya reintentado           -> basicNack sin requeue -> DLQ.
- * Todo envio a DLQ queda registrado en el log con el contenido del mensaje.
+ * Todo envio a DLQ queda registrado como "[ALERTA DLQ]" en el log, con el
+ * contenido del mensaje; el mensaje queda guardado en la DLQ para revisarlo.
  */
 @Component
 public class ConfirmacionMensajes {
@@ -44,11 +45,11 @@ public class ConfirmacionMensajes {
             logica.accept(jsonMapper.readValue(mensaje.getBody(), tipo));
             canal.basicAck(tag, false);
         } catch (JacksonException | MensajeInvalidoException e) {
-            log.error("[{}] Mensaje invalido, enviado a DLQ: {} | cuerpo={}", cola, e.getMessage(), cuerpo);
+            log.error("[ALERTA DLQ] [{}] Mensaje invalido, enviado a la DLQ: {} | cuerpo={}", cola, e.getMessage(), cuerpo);
             canal.basicNack(tag, false, false);
         } catch (RuntimeException e) {
             if (Boolean.TRUE.equals(propiedades.getRedelivered())) {
-                log.error("[{}] Fallo de nuevo tras reintentar, enviado a DLQ: {} | cuerpo={}", cola, e.getMessage(), cuerpo);
+                log.error("[ALERTA DLQ] [{}] Fallo de nuevo tras reintentar, enviado a la DLQ: {} | cuerpo={}", cola, e.getMessage(), cuerpo);
                 canal.basicNack(tag, false, false);
             } else {
                 log.warn("[{}] Error al procesar, se reintenta una vez: {}", cola, e.getMessage());

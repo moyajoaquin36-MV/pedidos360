@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -28,12 +29,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
-    /** Path variables invalidos, por ejemplo DELETE /api/rabbit/queues/amq.algo */
+    /** Path variables o query params invalidos, por ejemplo DELETE /api/rabbitmq/queues/amq.algo */
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<Map<String, Object>> handlePathInvalido(HandlerMethodValidationException ex) {
         Map<String, Object> body = cuerpoError("Nombre invalido");
         body.put("errores", ex.getAllErrors().stream().map(error -> error.getDefaultMessage()).toList());
         return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleParametroFaltante(MissingServletRequestParameterException ex) {
+        return ResponseEntity.badRequest().body(cuerpoError("Falta el parametro '" + ex.getParameterName() + "'"));
     }
 
     /** JSON mal formado o tipo de exchange inexistente (ej. "tipo": "HEADERSX"). */

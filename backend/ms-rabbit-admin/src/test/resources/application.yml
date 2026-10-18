@@ -1,6 +1,13 @@
+# Convenciones del control plane (ver RabbitAdminProperties).
 rabbit-admin:
-  dead-letter-exchange: pedidos360.dlx
-  sufijo-dlq: .dlq
+  dead-letter:
+    sufijo-dlx: .dlx
+    sufijo-dlq: .dlq
+    ttl-dlq-ms: 86400000
+  topologia:
+    sufijo-exchange: .exchange
+    sufijo-cola: .queue
+    sufijo-routing-key: .created
 
 azure:
   ad:

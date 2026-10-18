@@ -8,9 +8,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * estos nombres a mano.
  */
 @ConfigurationProperties(prefix = "mensajeria")
-public record MensajeriaProperties(Exchanges exchanges, Colas colas, RoutingKeys routingKeys, String sufijoDlq) {
+public record MensajeriaProperties(Exchanges exchanges, Colas colas, RoutingKeys routingKeys, DeadLetter deadLetter) {
 
-    public record Exchanges(String direct, String topic, String deadLetter) {
+    public record Exchanges(String direct, String topic) {
     }
 
     public record Colas(String tickets, String notificaciones) {
@@ -23,8 +23,18 @@ public record MensajeriaProperties(Exchanges exchanges, Colas colas, RoutingKeys
     public record RoutingKeys(String pedidoCreado, String estadoPedido, String estadoPedidoBinding) {
     }
 
-    /** Nombre de la DLQ de una cola; tambien es su routing key en el dead-letter exchange. */
+    /**
+     * Cada cola tiene su propio DLX (fanout) "cola.dlx" y su DLQ "cola.dlq".
+     * ttlDlqMs es la politica de retencion: cuanto se guarda un mensaje muerto.
+     */
+    public record DeadLetter(String sufijoDlx, String sufijoDlq, long ttlDlqMs) {
+    }
+
+    public String dlx(String cola) {
+        return cola + deadLetter.sufijoDlx();
+    }
+
     public String dlq(String cola) {
-        return cola + sufijoDlq;
+        return cola + deadLetter.sufijoDlq();
     }
 }
