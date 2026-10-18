@@ -34,8 +34,8 @@ y el preflight terminaba en nginx (405) en vez de responderlo el Gateway.
 (204, seccion 3). Si una ruta capturara `OPTIONS`, el preflight iria al backend o
 al authorizer (401, porque el navegador no manda token en el preflight).
 
-**IP de la EC2**: el Learner Lab cambia la IP publica cada vez que se reinicia el lab.
-Si el Gateway responde 503, actualizar la IP en todas las integraciones.
+**IP de la EC2**: IP elastica fija `174.129.161.62` (`eipalloc-0c126af6893d54931`).
+Sin ella el Learner Lab cambia la IP publica en cada reinicio y el Gateway responde 503.
 
 ## 2. JWT Authorizer (asociado a las 9 rutas)
 
