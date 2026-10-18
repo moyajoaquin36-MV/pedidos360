@@ -83,7 +83,13 @@ Con CORS configurado, el HTTP API ignora los headers CORS que devuelva el backen
   | cuenta del alumno (invitada) | ADMIN_GENERAL |
 
   Un usuario sin rol asignado entra como CLIENTE (`AzureRolesJwtAuthenticationConverter`).
-- **Flujo de usuario de registro** (sign up) asociado a Pedidos360-Frontend.
+- **Flujo de usuario `B2X_1_registropedidos360`** (registrarse e iniciar sesion), asociado a
+  Pedidos360-Frontend. Requiere:
+  - *External Identities → Configuracion de colaboracion externa*: registro de autoservicio de invitados = **Si**.
+  - En el flujo, *Proveedores de identidad*: **Codigo de acceso de un solo uso por correo**
+    (sin esto solo acepta cuentas de organizaciones Microsoft y rechaza Gmail).
+  - Probado: registro con un Gmail → codigo por correo → entra a la app como CLIENTE.
+    Un correo con `+` (ej. `nombre+algo@gmail.com`) falla con *"An invalid value was presented for a property"*.
 
 ## 5. Evidencias con Postman
 
