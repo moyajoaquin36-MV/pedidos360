@@ -10,7 +10,6 @@ import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
-import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.boot.amqp.autoconfigure.RabbitTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -72,15 +71,16 @@ public class RabbitConfig {
         return BindingBuilder.bind(colaAlertasStockDlq()).to(alertasStockDlx());
     }
 
+    /**
+     * El productor envia JSON y registra en logs los mensajes que el broker no
+     * pudo enrutar o no confirmo. El convertidor JSON va SOLO en el RabbitTemplate:
+     * si fuera un @Bean, Spring tambien lo usaria en los listeners y rechazaria un
+     * JSON invalido antes de llegar a ConfirmacionMensajes (sin ACK manual ni log).
+     */
     @Bean
-    public MessageConverter jsonMessageConverter() {
-        return new JacksonJsonMessageConverter();
-    }
-
-    /** Registra en logs los mensajes que el broker no pudo enrutar o no confirmo. */
-    @Bean
-    public RabbitTemplateCustomizer callbacksDeEntrega() {
+    public RabbitTemplateCustomizer productorJson() {
         return template -> {
+            template.setMessageConverter(new JacksonJsonMessageConverter());
             template.setReturnsCallback(returned -> log.error(
                     "Mensaje NO entregado (sin cola destino): exchange={} routingKey={} motivo={}",
                     returned.getExchange(), returned.getRoutingKey(), returned.getReplyText()));
