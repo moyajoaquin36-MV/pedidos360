@@ -59,7 +59,7 @@ public class RabbitAdminService {
 
     public ColaResponse obtenerCola(String nombre) {
         QueueInformation info = buscarCola(nombre);
-        String dlq = nombre + props.deadLetter().sufijoDlq();
+        String dlq = nombreDlq(nombre);
         return new ColaResponse(info.getName(), info.getMessageCount(), info.getConsumerCount(),
                 rabbitAdmin.getQueueInfo(dlq) != null ? dlq : null);
     }
@@ -144,6 +144,16 @@ public class RabbitAdminService {
                 .build();
         rabbitAdmin.declareQueue(principal);
         return principal;
+    }
+
+    /**
+     * DLQ esperada de una cola: "orders.queue" (creada con topology) -> "orders.dlq";
+     * cualquier otra cola "x" (creada con POST /queues) -> "x.dlq".
+     */
+    String nombreDlq(String cola) {
+        String sufijoCola = props.topologia().sufijoCola();
+        String base = cola.endsWith(sufijoCola) ? cola.substring(0, cola.length() - sufijoCola.length()) : cola;
+        return base + props.deadLetter().sufijoDlq();
     }
 
     private QueueInformation buscarCola(String nombre) {
