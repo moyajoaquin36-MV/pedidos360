@@ -39,7 +39,11 @@ public class RabbitAdminService {
 
     // ---- Colas ----
 
-    /** Crea la cola; si lleva DLQ crea tambien "nombre.dlx" (fanout) y "nombre.dlq". */
+    /**
+     * Crea la cola; si lleva DLQ crea tambien "nombre.dlx" (fanout) y "nombre.dlq".
+     * Las colas durables son quorum (replicadas en el cluster); una cola no durable
+     * solo puede ser classic, porque quorum exige durabilidad.
+     */
     public ColaResponse crearCola(CrearColaRequest request) {
         String nombre = request.nombre();
         exigirQueNoExista(nombre);
@@ -47,7 +51,7 @@ public class RabbitAdminService {
             declararColaConDlq(nombre, nombre + props.deadLetter().sufijoDlx(), nombre + props.deadLetter().sufijoDlq(),
                     request.esDurable());
         } else {
-            rabbitAdmin.declareQueue(request.esDurable() ? QueueBuilder.durable(nombre).build() : QueueBuilder.nonDurable(nombre).build());
+            rabbitAdmin.declareQueue(request.esDurable() ? QueueBuilder.durable(nombre).quorum().build() : QueueBuilder.nonDurable(nombre).build());
         }
         log.info("Cola creada: {} (con DLQ: {})", nombre, request.llevaDlq());
         return obtenerCola(nombre);
@@ -130,12 +134,12 @@ public class RabbitAdminService {
 
     private Queue declararColaConDlq(String cola, String dlx, String dlq, boolean durable) {
         FanoutExchange exchangeDlx = ExchangeBuilder.fanoutExchange(dlx).durable(true).build();
-        Queue colaDlq = QueueBuilder.durable(dlq).ttl((int) props.deadLetter().ttlDlqMs()).build();
+        Queue colaDlq = QueueBuilder.durable(dlq).quorum().ttl((int) props.deadLetter().ttlDlqMs()).build();
         rabbitAdmin.declareExchange(exchangeDlx);
         rabbitAdmin.declareQueue(colaDlq);
         rabbitAdmin.declareBinding(BindingBuilder.bind(colaDlq).to(exchangeDlx));
 
-        Queue principal = (durable ? QueueBuilder.durable(cola) : QueueBuilder.nonDurable(cola))
+        Queue principal = (durable ? QueueBuilder.durable(cola).quorum() : QueueBuilder.nonDurable(cola))
                 .deadLetterExchange(dlx)
                 .build();
         rabbitAdmin.declareQueue(principal);

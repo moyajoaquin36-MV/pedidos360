@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
  *  3. Alerta de stock: pedidos360.topic --producto.stock.*--> inventario.alertas
  *  DLX fanout y DLQ: inventario.alertas.dlx --> inventario.alertas.dlq (TTL 24 h).
  *  (el exchange topic es el mismo que declara ms-pedidos).
+ *  Las colas son quorum: se replican en los 2 nodos del cluster.
  */
 @Configuration
 public class RabbitConfig {
@@ -49,6 +50,7 @@ public class RabbitConfig {
     public Queue colaAlertasStock() {
         String nombre = props.colas().alertasStock();
         return QueueBuilder.durable(nombre)
+                .quorum()
                 .deadLetterExchange(props.dlx(nombre))
                 .build();
     }
@@ -57,6 +59,7 @@ public class RabbitConfig {
     @Bean
     public Queue colaAlertasStockDlq() {
         return QueueBuilder.durable(props.dlq(props.colas().alertasStock()))
+                .quorum()
                 .ttl((int) props.deadLetter().ttlDlqMs())
                 .build();
     }

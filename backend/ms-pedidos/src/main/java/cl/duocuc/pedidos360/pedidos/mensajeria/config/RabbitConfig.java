@@ -24,6 +24,8 @@ import org.springframework.context.annotation.Configuration;
  *  2. Notificacion:  pedidos360.topic  --pedido.estado.*-->  notificaciones.pedidos
  *  Cada cola tiene su DLX fanout y su DLQ: <cola>.dlx --> <cola>.dlq (TTL 24 h).
  *  Un mensaje rechazado con NACK sin requeue cae en su DLQ y ahi queda para revisarlo.
+ *  Todas las colas son quorum: se replican en los 2 nodos del cluster (alta
+ *  disponibilidad de datos), igual que en el ejemplo del Control Plane del curso.
  */
 @Configuration
 public class RabbitConfig {
@@ -128,6 +130,7 @@ public class RabbitConfig {
     /** Cola principal: los mensajes rechazados (NACK sin requeue) se van a su DLX. */
     private Queue colaConDlq(String nombre) {
         return QueueBuilder.durable(nombre)
+                .quorum()
                 .deadLetterExchange(props.dlx(nombre))
                 .build();
     }
@@ -139,6 +142,6 @@ public class RabbitConfig {
 
     /** DLQ (cuarentena): guarda el mensaje muerto durante el TTL configurado para revisarlo. */
     private Queue dlq(String cola) {
-        return QueueBuilder.durable(props.dlq(cola)).ttl((int) props.deadLetter().ttlDlqMs()).build();
+        return QueueBuilder.durable(props.dlq(cola)).quorum().ttl((int) props.deadLetter().ttlDlqMs()).build();
     }
 }

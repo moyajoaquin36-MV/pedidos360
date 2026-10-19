@@ -56,6 +56,8 @@ sin frenar la respuesta al usuario. Si RabbitMQ falla, el pedido igual se crea (
 
 Cada cola tiene su propio DLX fanout `<cola>.dlx` (`x-dead-letter-exchange`) y su DLQ `<cola>.dlq` con TTL de 24 h
 (politica de retencion: el mensaje muerto queda guardado para revisarlo). Prefetch = 1 (fair dispatch).
+Todas las colas son **quorum**: se replican en los 2 nodos (alta disponibilidad de datos). Con 2 nodos, una cola
+quorum necesita ambos vivos para aceptar mensajes nuevos (mayoria de 2 = 2); con 3 nodos tolera la caida de uno.
 
 **ACK manual** (`ConfirmacionMensajes`): procesado bien -> `ack`; JSON invalido o datos incompletos -> `nack` sin requeue
 (va directo a la DLQ, reintentar no sirve); otro error -> se reintenta **una** vez y si vuelve a fallar va a la DLQ.
