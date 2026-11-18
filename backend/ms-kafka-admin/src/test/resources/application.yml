@@ -1,0 +1,19 @@
+# Sin broker: el AdminClient es @Lazy y no se conecta al arrancar.
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    admin:
+      client-id: ms-kafka-admin-test
+      auto-create: false
+      fail-fast: false
+      properties:
+        request.timeout.ms: 2000
+        default.api.timeout.ms: 3000
+
+kafka-admin:
+  timeout: 5s
+
+azure:
+  ad:
+    tenant-id: common
+    client-id: test-client-id
