@@ -3,7 +3,7 @@ import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
 import { InteractionStatus } from '@azure/msal-browser';
 import { BehaviorSubject, Observable, catchError, filter, map, of, shareReplay, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Rol, decodificarPayloadJwt, obtenerRoles } from './roles';
+import { Rol, decodificarPayloadJwt, obtenerRoles, puedeVerPanel } from './roles';
 
 /**
  * Lee los roles del access token de la API (claim "roles") y los comparte con
@@ -14,6 +14,7 @@ export class RolesService {
   private readonly rolesSubject = new BehaviorSubject<string[]>([]);
   readonly roles$ = this.rolesSubject.asObservable();
   readonly esAdmin$ = this.roles$.pipe(map((roles) => roles.includes(Rol.AdminGeneral)));
+  readonly puedeVerPanel$ = this.roles$.pipe(map(puedeVerPanel));
 
   private cargado?: Observable<string[]>;
   private cuentaCargada?: string;
