@@ -1,0 +1,141 @@
+<section class="admin-page panel-page">
+  <div class="admin-titulo">
+    <h1>Panel en tiempo real</h1>
+    <a routerLink="/home" class="volver">&larr; Volver a la tienda</a>
+  </div>
+
+  <p class="panel-intro">
+    Los datos llegan por <strong>Kafka</strong> en tiempo real: ms-pedidos publica cada pedido y cambio de estado en
+    el topico <code>pedidos-eventos</code> y ms-productos cada movimiento de stock en
+    <code>inventario-movimientos</code>. ms-reportes consume ambos topicos y calcula estas metricas al instante; esta
+    pagina las consulta cada 3 segundos.
+  </p>
+
+  <p class="en-vivo" [class.caido]="desactualizado">
+    <ng-container *ngIf="segundosDesdeActualizacion !== null; else sinDatos">
+      En vivo &middot; actualizado hace {{ segundosDesdeActualizacion }}s
+      <ng-container *ngIf="ultimoIntentoFallo"> (fallo la ultima consulta)</ng-container>
+    </ng-container>
+    <ng-template #sinDatos>{{ ultimoIntentoFallo ? 'Sin conexion con ms-reportes' : 'Conectando...' }}</ng-template>
+  </p>
+
+  <ng-container *ngIf="metricas as m">
+    <div class="kpis">
+      <div class="kpi kpi-grande"><span>Total de pedidos</span><strong>{{ m.totalPedidos }}</strong></div>
+      <div class="kpi kpi-grande"><span>Ventas totales</span><strong>{{ m.ventasTotales | currency: 'CLP' }}</strong></div>
+      <div class="kpi kpi-grande"><span>Eventos Kafka procesados</span><strong>{{ m.eventosProcesados }}</strong></div>
+    </div>
+    <p class="dropdown-sub panel-calculado">Metricas calculadas por ms-reportes: {{ m.actualizado | date: 'dd-MM-yyyy HH:mm:ss' }}</p>
+
+    <div class="panel-grid">
+      <section>
+        <h2>Pedidos por estado</h2>
+        <div class="panel-card">
+          <ul class="barras">
+            <li *ngFor="let e of estados" class="barra-fila">
+              <span>{{ e.estado }}</span>
+              <span class="barra" role="presentation"><span [style.width.%]="e.porcentaje"></span></span>
+              <strong>{{ e.cantidad }}</strong>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2>Ultimos eventos</h2>
+        <div class="panel-card">
+          <ul class="feed">
+            <li *ngFor="let ev of eventos; trackBy: porEventId" class="evento">
+              <time [attr.datetime]="ev.fecha">{{ ev.fecha | date: 'HH:mm:ss' }}</time>
+              <span class="tag">{{ ev.tipo }}</span>
+              <p *ngIf="ev.detalle">{{ ev.detalle }}</p>
+            </li>
+          </ul>
+          <p *ngIf="eventos.length === 0" class="panel-vacio">Aun no llegan eventos.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Ventas por local</h2>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr><th>Local</th><th>Ventas</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let v of ventasPorLocal">
+                <td>{{ v.nombre }}</td>
+                <td>{{ v.ventas | currency: 'CLP' }}</td>
+              </tr>
+              <tr *ngIf="ventasPorLocal.length === 0"><td colspan="2">Sin ventas registradas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Top 5 productos</h2>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Producto</th><th>Unidades</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of m.topProductos.slice(0, 5); let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>{{ p.nombre }}</td>
+                <td>{{ p.unidades }}</td>
+              </tr>
+              <tr *ngIf="m.topProductos.length === 0"><td colspan="3">Sin productos vendidos.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel-ancho">
+        <h2>Stock critico</h2>
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr><th>Local</th><th>Producto</th><th>Stock</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of m.stockCritico" class="fila-alerta">
+                <td>{{ nombreLocal(s.localId) }}</td>
+                <td>{{ s.nombre }}</td>
+                <td><strong>{{ s.stock }}</strong></td>
+              </tr>
+              <tr *ngIf="m.stockCritico.length === 0"><td colspan="3">Ningun producto con stock critico.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </ng-container>
+
+  <section *ngIf="esAdmin" class="panel-auditoria">
+    <h2>Auditoria (Kafka)</h2>
+    <p class="dropdown-sub">
+      Ultimos 20 eventos guardados por ms-auditoria (grupo <code>grupo-auditoria</code>). Solo visible para
+      <strong>ADMIN_GENERAL</strong>.
+    </p>
+    <p *ngIf="errorAuditoria" class="error">No se pudo consultar la auditoria; se reintenta en 3 s.</p>
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+          <tr><th>Fecha</th><th>Tipo</th><th>Usuario</th><th>Rol</th><th>Topico / particion / offset</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of auditoria">
+            <td>{{ a.fechaEvento | date: 'dd-MM-yyyy HH:mm:ss' }}</td>
+            <td>{{ a.tipo }}</td>
+            <td>{{ a.usuario }}</td>
+            <td><span class="tag">{{ a.rol }}</span></td>
+            <td><code>{{ a.topico }} / p{{ a.particion }} / #{{ a.offset }}</code></td>
+          </tr>
+          <tr *ngIf="auditoria.length === 0"><td colspan="5">Sin eventos auditados.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>

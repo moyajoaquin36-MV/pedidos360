@@ -10,6 +10,11 @@ export enum Rol {
   AdminGeneral = 'ADMIN_GENERAL'
 }
 
+/** El panel en tiempo real (/panel) es para ADMIN_GENERAL y OPERADOR_COCINA (igual que GET /api/reportes/metricas). */
+export function puedeVerPanel(roles: string[]): boolean {
+  return roles.includes(Rol.AdminGeneral) || roles.includes(Rol.OperadorCocina);
+}
+
 /**
  * Azure AD (Entra ID) entrega los app roles asignados al usuario en el
  * claim "roles" del token, pero solo respecto del recurso (audience) para
