@@ -1,4 +1,4 @@
-# Pedidos 360 - Backend (3 microservicios Spring Boot + RabbitMQ)
+# Pedidos 360 - Backend (6 microservicios Spring Boot + RabbitMQ + Kafka)
 
 ## Arquitectura en una imagen
 
@@ -80,6 +80,35 @@ los DTO validan nombres (no vacios, sin el prefijo reservado `amq.`, tipo DIRECT
 
 **Cluster**: `rabbitmq-1` + `rabbitmq-2` en `docker-compose.aws.yml`, unidos por `rabbitmq.conf` (classic config) y el mismo
 Erlang cookie. Los microservicios se conectan a ambos (`RABBITMQ_ADDRESSES`). Consola: puerto 15672 (nodo 1) y 15673 (nodo 2).
+
+## Streaming de eventos con Apache Kafka
+
+RabbitMQ sigue para tareas (ticket, notificacion, alerta): el mensaje se consume y desaparece.
+Kafka se suma como **log de eventos de negocio** que se conserva y se puede releer: alimenta la
+reporteria en tiempo real y la auditoria (casos de uso del curso para Pedidos 360). Detalle completo
+en [docs/kafka-contrato.md](../docs/kafka-contrato.md).
+
+| Topico | Productor | Clave | Particiones / replicas | Politica |
+|---|---|---|---|---|
+| `pedidos-eventos` | ms-pedidos (PEDIDO_CREADO, ESTADO_CAMBIADO) | pedidoId (los pasos de un pedido quedan en orden) | 3 / 3, min.insync 2 | delete, 7 dias |
+| `inventario-movimientos` | ms-productos (PRODUCTO_CREADO, STOCK_DESCONTADO, STOCK_REPUESTO) | productoId | 3 / 3, min.insync 2 | compact (ultimo stock por producto) |
+
+| Consumidor | consumer group | Que hace |
+|---|---|---|
+| ms-reportes | `grupo-reporteria` | Metricas en tiempo real (`GET /api/reportes/metricas`); al arrancar relee el topico desde el inicio |
+| ms-auditoria | `grupo-auditoria` | Guarda cada evento en MySQL sin duplicados (`eventId` unico); `GET /api/auditoria/eventos` |
+
+Grupos distintos = cada servicio recibe todos los eventos. Dentro de cada grupo `concurrency: 3` =
+3 consumidores que se reparten las 3 particiones. Errores: reintentos con backoff exponencial y
+despues `<topico>.DLT`; JSON roto o evento invalido van directo al DLT.
+
+**ms-kafka-admin** (`/api/kafka`, solo ADMIN_GENERAL): cluster, topicos (crear, ver particiones/lider/ISR,
+modificar configs, aumentar particiones, borrar) y consumer groups (offsets, lag, reset de offsets).
+
+**Cluster**: `docker-compose.kafka.yml` con 3 Zookeeper (quorum 2 de 3) + 3 brokers (RF 3, min.insync 2:
+tolera la caida de 1 broker) + Kafka UI (puerto 8080). Se levanta junto con el compose principal:
+`docker compose -f docker-compose.aws.yml -f docker-compose.kafka.yml --env-file .env up -d`.
+Operaciones por CLI: `deploy/kafka-topicos.sh crear | describir | grupos | alterar`.
 
 ## Correr / probar
 ```bash
