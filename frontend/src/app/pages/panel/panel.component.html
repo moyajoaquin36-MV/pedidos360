@@ -48,7 +48,7 @@
             <li *ngFor="let ev of eventos; trackBy: porEventId" class="evento">
               <time [attr.datetime]="ev.fecha">{{ ev.fecha | date: 'HH:mm:ss' }}</time>
               <span class="tag">{{ ev.tipo }}</span>
-              <p *ngIf="ev.detalle">{{ ev.detalle }}</p>
+              <p>{{ ev.descripcion }} <small>· {{ ev.usuario }} ({{ ev.rol }})</small></p>
             </li>
           </ul>
           <p *ngIf="eventos.length === 0" class="panel-vacio">Aun no llegan eventos.</p>
@@ -83,7 +83,7 @@
             <tbody>
               <tr *ngFor="let p of m.topProductos.slice(0, 5); let i = index">
                 <td>{{ i + 1 }}</td>
-                <td>{{ p.nombre }}</td>
+                <td>{{ p.nombreProducto }}</td>
                 <td>{{ p.unidades }}</td>
               </tr>
               <tr *ngIf="m.topProductos.length === 0"><td colspan="3">Sin productos vendidos.</td></tr>

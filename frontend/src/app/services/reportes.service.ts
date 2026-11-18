@@ -5,7 +5,7 @@ import { environment } from '../../environments/environment';
 
 export interface ProductoTop {
   productoId: number;
-  nombre: string;
+  nombreProducto: string;
   unidades: number;
 }
 
@@ -21,7 +21,10 @@ export interface EventoReciente {
   tipo: string;
   /** ISO-8601 */
   fecha: string;
-  detalle: string;
+  localId: string;
+  descripcion: string;
+  usuario: string;
+  rol: string;
 }
 
 /** Respuesta de GET /api/reportes/metricas (ms-reportes, calculada desde los topicos Kafka). */
