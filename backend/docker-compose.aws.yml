@@ -1,4 +1,9 @@
-# Despliegue en EC2: MySQL + cluster RabbitMQ (2 nodos) + 3 microservicios + nginx.
+# Despliegue en EC2: MySQL + cluster RabbitMQ (2 nodos) + 6 microservicios + nginx
+# (ms-pedidos, ms-productos, ms-rabbit-admin, ms-kafka-admin, ms-reportes, ms-auditoria).
+# El cluster Kafka (3 Zookeeper + 3 brokers + Kafka UI) esta en docker-compose.kafka.yml
+# y se levanta junto con este archivo (ms-kafka-admin, ms-reportes y ms-auditoria dependen de el):
+#   docker compose -f docker-compose.aws.yml -f docker-compose.kafka.yml --env-file .env up -d --build
+# JAVA_TOOL_OPTIONS limita el heap de cada microservicio (todo el stack comparte 8 GB de RAM).
 # Variables (en .env junto a este archivo): DB_PASSWORD, AZURE_TENANT_ID,
 # AZURE_CLIENT_ID, CORS_ORIGINS, RABBITMQ_USER, RABBITMQ_PASSWORD, RABBITMQ_ERLANG_COOKIE
 services:
@@ -66,6 +71,7 @@ services:
         condition: service_healthy
     environment:
       SERVER_PORT: 8080
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
       DB_HOST: mysql
       DB_NAME: ms_pedidos_db
       DB_USERNAME: pedidos360
@@ -77,6 +83,8 @@ services:
       RABBITMQ_ADDRESSES: rabbitmq-1:5672,rabbitmq-2:5672
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # Sin depends_on hacia Kafka: si Kafka esta caido el pedido igual se crea (solo se registra).
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29093,kafka-3:29094
     ports:
       - "8081:8080"
 
@@ -92,6 +100,7 @@ services:
         condition: service_healthy
     environment:
       SERVER_PORT: 8080
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
       DB_HOST: mysql
       DB_NAME: ms_productos_db
       DB_USERNAME: pedidos360
@@ -102,6 +111,8 @@ services:
       RABBITMQ_ADDRESSES: rabbitmq-1:5672,rabbitmq-2:5672
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # Sin depends_on hacia Kafka: si Kafka esta caido el stock igual se actualiza (solo se registra).
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29093,kafka-3:29094
     ports:
       - "8082:8080"
 
@@ -115,6 +126,7 @@ services:
         condition: service_healthy
     environment:
       SERVER_PORT: 8080
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
       AZURE_TENANT_ID: ${AZURE_TENANT_ID}
       AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
       RABBITMQ_ADDRESSES: rabbitmq-1:5672,rabbitmq-2:5672
@@ -122,6 +134,73 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     ports:
       - "8083:8080"
+
+  # Microservicios de Kafka (brokers en docker-compose.kafka.yml): esperan a los 3 brokers sanos.
+  # ms-kafka-admin: control plane de topicos y consumer groups (solo ADMIN_GENERAL).
+  ms-kafka-admin:
+    build: ./ms-kafka-admin
+    restart: unless-stopped
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29093,kafka-3:29094
+    ports:
+      - "8084:8080"
+
+  # ms-reportes: consumer group grupo-reporteria (metricas en tiempo real, en memoria).
+  ms-reportes:
+    build: ./ms-reportes
+    restart: unless-stopped
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29093,kafka-3:29094
+    ports:
+      - "8085:8080"
+
+  # ms-auditoria: consumer group grupo-auditoria (guarda cada evento en ms_auditoria_db).
+  ms-auditoria:
+    build: ./ms-auditoria
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_started
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
+      DB_HOST: mysql
+      DB_NAME: ms_auditoria_db
+      DB_USERNAME: pedidos360
+      DB_PASSWORD: ${DB_PASSWORD}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:29092,kafka-2:29093,kafka-3:29094
+    ports:
+      - "8086:8080"
 
   frontend:
     image: nginx:alpine
