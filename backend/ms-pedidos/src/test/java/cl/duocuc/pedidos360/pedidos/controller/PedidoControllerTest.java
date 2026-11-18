@@ -1,6 +1,11 @@
 package cl.duocuc.pedidos360.pedidos.controller;
 
 import cl.duocuc.pedidos360.pedidos.client.ProductosClient;
+import cl.duocuc.pedidos360.pedidos.domain.EstadoPedido;
+import cl.duocuc.pedidos360.pedidos.domain.ModalidadEntrega;
+import cl.duocuc.pedidos360.pedidos.domain.Pedido;
+import cl.duocuc.pedidos360.pedidos.mensajeria.kafka.evento.Actor;
+import cl.duocuc.pedidos360.pedidos.mensajeria.kafka.productor.PedidoKafkaPublisher;
 import cl.duocuc.pedidos360.pedidos.mensajeria.productor.PedidoEventosPublisher;
 import cl.duocuc.pedidos360.pedidos.repository.PedidoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,8 +20,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,6 +48,9 @@ class PedidoControllerTest {
 
     @MockitoBean
     private PedidoEventosPublisher eventos;
+
+    @MockitoBean
+    private PedidoKafkaPublisher eventosKafka;
 
     @BeforeEach
     void limpiarDatos() {
@@ -72,6 +83,9 @@ class PedidoControllerTest {
                         .content(body))
                 .andExpect(status().isCreated());
 
+        // Sin claims name ni preferred_username, el actor es el sub del JWT.
+        verify(eventosKafka).pedidoCreado(any(), eq(new Actor("cliente-123", "CLIENTE")));
+
         mockMvc.perform(get("/api/pedidos")
                         .with(SecurityMockMvcRequestPostProcessors.jwt()
                                 .jwt(jwt -> jwt.subject("cliente-123").claim("roles", java.util.List.of("CLIENTE")))
@@ -96,6 +110,27 @@ class PedidoControllerTest {
                         .contentType("application/json")
                         .content(body))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void cambioDeEstadoPublicaEnKafkaConElEstadoAnteriorYElOperador() throws Exception {
+        Pedido pedido = new Pedido();
+        pedido.setLocalId("local-01");
+        pedido.setClienteId("cliente-123");
+        pedido.setModalidadEntrega(ModalidadEntrega.DELIVERY);
+        pedido = pedidoRepository.save(pedido);
+
+        mockMvc.perform(patch("/api/pedidos/" + pedido.getId() + "/estado")
+                        .with(SecurityMockMvcRequestPostProcessors.jwt()
+                                .jwt(jwt -> jwt.subject("operador-1").claim("name", "Ana Operadora")
+                                        .claim("roles", java.util.List.of("OPERADOR_COCINA")))
+                                .authorities(new SimpleGrantedAuthority("ROLE_OPERADOR_COCINA")))
+                        .contentType("application/json")
+                        .content("{\"estado\":\"EN_PREPARACION\"}"))
+                .andExpect(status().isOk());
+
+        verify(eventosKafka).estadoCambiado(any(), eq(EstadoPedido.RECIBIDO),
+                eq(new Actor("Ana Operadora", "OPERADOR_COCINA")));
     }
 
     @Test

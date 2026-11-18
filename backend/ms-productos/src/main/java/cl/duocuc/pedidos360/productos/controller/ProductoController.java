@@ -6,11 +6,15 @@ import cl.duocuc.pedidos360.productos.dto.DescontarStockRequest;
 import cl.duocuc.pedidos360.productos.dto.ProductoResponse;
 import cl.duocuc.pedidos360.productos.dto.RebajarStockRequest;
 import cl.duocuc.pedidos360.productos.dto.ReponerStockRequest;
+import cl.duocuc.pedidos360.productos.mensajeria.kafka.evento.Actor;
+import cl.duocuc.pedidos360.productos.mensajeria.kafka.productor.InventarioKafkaPublisher;
 import cl.duocuc.pedidos360.productos.mensajeria.productor.InventarioEventosPublisher;
 import cl.duocuc.pedidos360.productos.repository.ProductoRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,10 +34,13 @@ public class ProductoController {
 
     private final ProductoRepository productoRepository;
     private final InventarioEventosPublisher eventos;
+    private final InventarioKafkaPublisher eventosKafka;
 
-    public ProductoController(ProductoRepository productoRepository, InventarioEventosPublisher eventos) {
+    public ProductoController(ProductoRepository productoRepository, InventarioEventosPublisher eventos,
+                              InventarioKafkaPublisher eventosKafka) {
         this.productoRepository = productoRepository;
         this.eventos = eventos;
+        this.eventosKafka = eventosKafka;
     }
 
     @GetMapping
@@ -49,7 +56,8 @@ public class ProductoController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductoResponse> crear(@Valid @RequestBody CrearProductoRequest request) {
+    public ResponseEntity<ProductoResponse> crear(@AuthenticationPrincipal Jwt jwt,
+                                                   @Valid @RequestBody CrearProductoRequest request) {
         Producto producto = new Producto();
         producto.setLocalId(request.localId());
         producto.setSku(request.sku());
@@ -58,32 +66,40 @@ public class ProductoController {
         producto.setStock(request.stock());
 
         Producto guardado = productoRepository.save(producto);
+        eventosKafka.productoCreado(guardado, Actor.desde(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(ProductoResponse.from(guardado));
     }
 
     @PatchMapping("/{id}/stock")
-    public ProductoResponse rebajarStock(@PathVariable Long id, @Valid @RequestBody RebajarStockRequest request) {
+    public ProductoResponse rebajarStock(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+                                         @Valid @RequestBody RebajarStockRequest request) {
         Producto producto = buscarOFallar(id);
         producto.rebajarStock(request.cantidad());
         Producto guardado = productoRepository.save(producto);
         eventos.revisarStockBajo(guardado);
+        eventosKafka.stockDescontado(guardado, request.cantidad(), Actor.desde(jwt));
         return ProductoResponse.from(guardado);
     }
 
     @PatchMapping("/{id}/reposicion")
-    public ProductoResponse reponerStock(@PathVariable Long id, @Valid @RequestBody ReponerStockRequest request) {
+    public ProductoResponse reponerStock(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+                                         @Valid @RequestBody ReponerStockRequest request) {
         Producto producto = buscarOFallar(id);
         producto.reponerStock(request.cantidad());
-        return ProductoResponse.from(productoRepository.save(producto));
+        Producto guardado = productoRepository.save(producto);
+        eventosKafka.stockRepuesto(guardado, request.cantidad(), Actor.desde(jwt));
+        return ProductoResponse.from(guardado);
     }
 
     /**
      * Descuenta stock de varios productos en una sola transaccion (todo o nada).
-     * Lo invoca ms-pedidos al crear un pedido.
+     * Lo invoca ms-pedidos al crear un pedido, reenviando el JWT del cliente:
+     * por eso el actor de los eventos de Kafka es el cliente.
      */
     @PostMapping("/descuento-stock")
     @Transactional
-    public ResponseEntity<Void> descontarStock(@Valid @RequestBody DescontarStockRequest request) {
+    public ResponseEntity<Void> descontarStock(@AuthenticationPrincipal Jwt jwt,
+                                               @Valid @RequestBody DescontarStockRequest request) {
         Map<Long, Integer> cantidadPorProducto = new HashMap<>();
         request.items().forEach(item -> cantidadPorProducto.merge(item.productoId(), item.cantidad(), Integer::sum));
 
@@ -98,6 +114,9 @@ public class ProductoController {
         productos.forEach(producto -> producto.rebajarStock(cantidadPorProducto.get(producto.getId())));
         productoRepository.saveAll(productos);
         productos.forEach(eventos::revisarStockBajo);
+        Actor actor = Actor.desde(jwt);
+        productos.forEach(producto ->
+                eventosKafka.stockDescontado(producto, cantidadPorProducto.get(producto.getId()), actor));
         return ResponseEntity.noContent().build();
     }
 
