@@ -1,0 +1,43 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: grupo-reporteria
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    # Los tests no levantan Kafka: los listeners no se inician y no se crean topicos.
+    listener:
+      ack-mode: record
+      concurrency: 3
+      auto-startup: false
+    admin:
+      auto-create: false
+    producer:
+      acks: all
+      properties:
+        enable.idempotence: true
+
+kafka:
+  topicos:
+    pedidos-eventos: pedidos-eventos
+    inventario-movimientos: inventario-movimientos
+    dlt:
+      sufijo: .DLT
+      particiones: 3
+      replicas: 3
+      min-insync-replicas: 2
+      cleanup-policy: delete
+      retention-ms: 1209600000
+  reintentos:
+    maximo: 3
+    intervalo-inicial-ms: 1000
+    multiplicador: 2.0
+    intervalo-maximo-ms: 10000
+
+reportes:
+  umbral-stock-critico: 5
+
+azure:
+  ad:
+    tenant-id: common
+    client-id: test-client-id
