@@ -26,6 +26,33 @@ spring:
       simple:
         # Fair dispatch: un mensaje sin confirmar a la vez por consumidor.
         prefetch: 1
+  # Kafka (cluster de 3 brokers, ver docs/kafka-contrato.md). Se suma a RabbitMQ, no lo reemplaza.
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      # Durabilidad: el lider confirma solo cuando todas las replicas en sincronia
+      # (min.insync.replicas del topico) tienen el evento.
+      acks: all
+      # Sin tope propio de reintentos: el limite real lo pone delivery.timeout.ms.
+      retries: 2147483647
+      properties:
+        # Idempotencia: los reintentos no duplican eventos ni alteran su orden por particion
+        # (requiere acks=all y max.in.flight <= 5).
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+        # Tiempo total para entregar un evento, reintentos incluidos (2 min).
+        delivery.timeout.ms: 120000
+        # El envio corre en el hilo de la request (tras el commit): si Kafka no
+        # responde se espera como maximo 5 s por metadata antes de registrar el error.
+        max.block.ms: 5000
+        # Tuning del curso: lotes de 32 KB, espera de 20 ms para llenarlos y compresion snappy.
+        batch.size: 32768
+        linger.ms: 20
+        compression.type: snappy
+        # Sin headers de tipo: cada consumidor deserializa a su propio record.
+        spring.json.add.type.headers: false
 
 # Nombres de exchanges, colas y routing keys (ver mensajeria/config/RabbitConfig).
 mensajeria:
@@ -44,6 +71,21 @@ mensajeria:
     sufijo-dlx: .dlx
     sufijo-dlq: .dlq
     ttl-dlq-ms: 86400000
+
+# Topico Kafka que produce ms-pedidos (ver mensajeria/kafka/config/KafkaConfig).
+# 3 particiones (paralelismo de los consumidores) y 3 replicas (una por broker).
+kafka:
+  topicos:
+    pedidos-eventos:
+      nombre: pedidos-eventos
+      particiones: 3
+      replicas: 3
+      configs:
+        # Historial de negocio: se borra lo que tenga mas de 7 dias.
+        cleanup.policy: delete
+        retention.ms: 604800000
+        # Con acks=all se exige que 2 de las 3 replicas tengan el evento.
+        min.insync.replicas: 2
 
 # Datos del tenant de Azure AD (Entra ID). Reemplazar por los valores reales
 # una vez creado el tenant (ver guia "Creacion de tenant") y registrada la app.

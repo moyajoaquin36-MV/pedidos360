@@ -13,6 +13,12 @@ spring:
     listener:
       simple:
         auto-startup: false
+  # Los tests no levantan Kafka: no se crean topicos al arrancar (el productor
+  # solo se conecta al primer envio, y en los tests los publishers van mockeados).
+  kafka:
+    admin:
+      auto-create: false
+      fail-fast: false
 
 azure:
   ad:
@@ -36,3 +42,15 @@ mensajeria:
     sufijo-dlx: .dlx
     sufijo-dlq: .dlq
     ttl-dlq-ms: 86400000
+
+# Topico Kafka que produce ms-pedidos (ver mensajeria/kafka/config/KafkaConfig).
+kafka:
+  topicos:
+    pedidos-eventos:
+      nombre: pedidos-eventos
+      particiones: 3
+      replicas: 3
+      configs:
+        cleanup.policy: delete
+        retention.ms: 604800000
+        min.insync.replicas: 2
