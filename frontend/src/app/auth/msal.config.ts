@@ -62,6 +62,10 @@ export function MSALInterceptorConfigFactory(): MsalInterceptorConfiguration {
   protectedResourceMap.set(environment.pedidosBaseUrl, environment.azureAd.apiScopes);
   protectedResourceMap.set(`${environment.productosBaseUrl}/*`, environment.azureAd.apiScopes);
   protectedResourceMap.set(environment.productosBaseUrl, environment.azureAd.apiScopes);
+  protectedResourceMap.set(`${environment.reportesBaseUrl}/*`, environment.azureAd.apiScopes);
+  protectedResourceMap.set(environment.reportesBaseUrl, environment.azureAd.apiScopes);
+  protectedResourceMap.set(`${environment.auditoriaBaseUrl}/*`, environment.azureAd.apiScopes);
+  protectedResourceMap.set(environment.auditoriaBaseUrl, environment.azureAd.apiScopes);
 
   return {
     interactionType: InteractionType.Redirect,

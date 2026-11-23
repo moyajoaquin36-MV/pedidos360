@@ -1,0 +1,77 @@
+server:
+  port: ${SERVER_PORT:8085}
+
+spring:
+  application:
+    name: ms-reportes
+  kafka:
+    # Cluster de 3 brokers (ver docs/kafka-contrato.md); en local basta uno.
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      # Grupo propio: recibe TODOS los eventos aunque ms-auditoria lea los mismos topicos.
+      group-id: grupo-reporteria
+      # Sin offset guardado se parte desde el inicio (las metricas se reconstruyen).
+      auto-offset-reset: earliest
+      # El offset lo confirma el contenedor tras procesar cada registro (ack-mode record).
+      enable-auto-commit: false
+      # Clave String. El valor lo arma KafkaConsumerConfig por topico:
+      # ErrorHandlingDeserializer -> JacksonJsonDeserializer<record del topico>.
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        # Lotes chicos: cada poll se procesa rapido y no se excede max.poll.interval.ms.
+        max.poll.records: 50
+        # Si un consumidor no da senales en 30 s se le quitan sus particiones.
+        session.timeout.ms: 30000
+        # Heartbeat cada 10 s (un tercio de session.timeout, como recomienda Kafka).
+        heartbeat.interval.ms: 10000
+        # Tiempo maximo entre polls antes de considerar al consumidor caido (5 min).
+        max.poll.interval.ms: 300000
+        # Reparte las particiones de forma pareja entre los consumidores del grupo.
+        partition.assignment.strategy: org.apache.kafka.clients.consumer.RoundRobinAssignor
+    listener:
+      # Commit por registro: si el servicio cae, a lo mas se reprocesa un evento.
+      ack-mode: record
+      # 3 hilos por topico = 1 consumidor por particion (los topicos tienen 3).
+      concurrency: 3
+    producer:
+      # Solo se usa para publicar en los .DLT: no se pierde un mensaje fallido.
+      acks: all
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 120000
+
+# Topicos, DLT y reintentos (ver mensajeria/kafka/config/KafkaMensajeriaProperties).
+kafka:
+  topicos:
+    pedidos-eventos: pedidos-eventos
+    inventario-movimientos: inventario-movimientos
+    # <topico>.DLT: mismas 3 particiones para publicar en la misma particion del original.
+    dlt:
+      sufijo: .DLT
+      particiones: 3
+      replicas: 3
+      min-insync-replicas: 2
+      cleanup-policy: delete
+      retention-ms: 1209600000
+  # Backoff exponencial: 1 s, 2 s, 4 s (tope 10 s) y luego al DLT.
+  reintentos:
+    maximo: 3
+    intervalo-inicial-ms: 1000
+    multiplicador: 2.0
+    intervalo-maximo-ms: 10000
+
+reportes:
+  # Un producto con stock menor o igual a este valor aparece en stockCritico.
+  umbral-stock-critico: ${UMBRAL_STOCK_CRITICO:5}
+
+azure:
+  ad:
+    tenant-id: ${AZURE_TENANT_ID:00000000-0000-0000-0000-000000000000}
+    client-id: ${AZURE_CLIENT_ID:00000000-0000-0000-0000-000000000000}
+
+logging:
+  # Cada linea de log lleva el correlationId del evento (MDC puesto por los listeners).
+  pattern:
+    correlation: "[%X{correlationId:-}] "

@@ -17,7 +17,10 @@ export const environment = {
   },
 
   // Todo el trafico al backend pasa por AWS API Gateway (HTTP API), que enruta
-  // /api/pedidos -> ms-pedidos y /api/productos -> ms-productos en EC2.
+  // /api/pedidos -> ms-pedidos, /api/productos -> ms-productos, /api/reportes -> ms-reportes
+  // y /api/auditoria -> ms-auditoria en EC2.
   pedidosBaseUrl: 'https://ng3zai38m7.execute-api.us-east-1.amazonaws.com/api/pedidos',
-  productosBaseUrl: 'https://ng3zai38m7.execute-api.us-east-1.amazonaws.com/api/productos'
+  productosBaseUrl: 'https://ng3zai38m7.execute-api.us-east-1.amazonaws.com/api/productos',
+  reportesBaseUrl: 'https://ng3zai38m7.execute-api.us-east-1.amazonaws.com/api/reportes',
+  auditoriaBaseUrl: 'https://ng3zai38m7.execute-api.us-east-1.amazonaws.com/api/auditoria'
 };

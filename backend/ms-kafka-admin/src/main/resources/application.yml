@@ -1,0 +1,28 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  application:
+    name: ms-kafka-admin
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    admin:
+      client-id: ms-kafka-admin
+      # Este servicio no declara NewTopic: no toca Kafka al arrancar.
+      auto-create: false
+      fail-fast: false
+      # Plazos del AdminClient (ver KafkaAdminConfig): con un broker caido la
+      # operacion falla con TimeoutException (503) en vez de quedarse colgada.
+      properties:
+        request.timeout.ms: 10000
+        default.api.timeout.ms: 15000
+        retry.backoff.ms: 500
+
+# Espera maxima de cada operacion en KafkaAdminService (mayor que default.api.timeout.ms).
+kafka-admin:
+  timeout: 20s
+
+azure:
+  ad:
+    tenant-id: ${AZURE_TENANT_ID:00000000-0000-0000-0000-000000000000}
+    client-id: ${AZURE_CLIENT_ID:00000000-0000-0000-0000-000000000000}

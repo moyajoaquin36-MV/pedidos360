@@ -1,11 +1,14 @@
 package cl.duocuc.pedidos360.pedidos.controller;
 
 import cl.duocuc.pedidos360.pedidos.client.ProductosClient;
+import cl.duocuc.pedidos360.pedidos.domain.EstadoPedido;
 import cl.duocuc.pedidos360.pedidos.domain.ItemPedido;
 import cl.duocuc.pedidos360.pedidos.domain.Pedido;
 import cl.duocuc.pedidos360.pedidos.dto.ActualizarEstadoRequest;
 import cl.duocuc.pedidos360.pedidos.dto.CrearPedidoRequest;
 import cl.duocuc.pedidos360.pedidos.dto.PedidoResponse;
+import cl.duocuc.pedidos360.pedidos.mensajeria.kafka.evento.Actor;
+import cl.duocuc.pedidos360.pedidos.mensajeria.kafka.productor.PedidoKafkaPublisher;
 import cl.duocuc.pedidos360.pedidos.mensajeria.productor.PedidoEventosPublisher;
 import cl.duocuc.pedidos360.pedidos.repository.PedidoRepository;
 import jakarta.validation.Valid;
@@ -41,12 +44,14 @@ public class PedidoController {
     private final PedidoRepository pedidoRepository;
     private final ProductosClient productosClient;
     private final PedidoEventosPublisher eventos;
+    private final PedidoKafkaPublisher eventosKafka;
 
     public PedidoController(PedidoRepository pedidoRepository, ProductosClient productosClient,
-                            PedidoEventosPublisher eventos) {
+                            PedidoEventosPublisher eventos, PedidoKafkaPublisher eventosKafka) {
         this.pedidoRepository = pedidoRepository;
         this.productosClient = productosClient;
         this.eventos = eventos;
+        this.eventosKafka = eventosKafka;
     }
 
     /**
@@ -99,15 +104,19 @@ public class PedidoController {
 
         Pedido guardado = pedidoRepository.save(pedido);
         eventos.pedidoCreado(guardado);
+        eventosKafka.pedidoCreado(guardado, Actor.desde(jwt));
         return ResponseEntity.status(HttpStatus.CREATED).body(PedidoResponse.from(guardado));
     }
 
     @PatchMapping("/{id}/estado")
-    public PedidoResponse actualizarEstado(@PathVariable Long id, @Valid @RequestBody ActualizarEstadoRequest request) {
+    public PedidoResponse actualizarEstado(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+                                           @Valid @RequestBody ActualizarEstadoRequest request) {
         Pedido pedido = buscarOFallar(id);
+        EstadoPedido estadoAnterior = pedido.getEstado();
         pedido.cambiarEstado(request.estado());
         Pedido guardado = pedidoRepository.save(pedido);
         eventos.estadoCambiado(guardado);
+        eventosKafka.estadoCambiado(guardado, estadoAnterior, Actor.desde(jwt));
         return PedidoResponse.from(guardado);
     }
 

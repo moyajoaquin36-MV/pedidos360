@@ -50,6 +50,14 @@
           >
             Panel de administracion
           </a>
+          <a
+            *ngIf="roles.puedeVerPanel$ | async"
+            routerLink="/panel"
+            class="btn-admin"
+            (click)="menuCuentaAbierto = false"
+          >
+            Panel en tiempo real
+          </a>
           <button type="button" (click)="cerrarSesion()">Cerrar sesion</button>
         </ng-container>
         <ng-template #noLogueado>
