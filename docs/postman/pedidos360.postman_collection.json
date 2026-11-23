@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Pedidos 360 - API Gateway",
-    "description": "Evidencia de cada ruta del AWS API Gateway. Antes de correr: pegar un access token valido en la variable 'token' (ver docs/api-gateway.md). La carpeta 'RabbitMQ admin' requiere un usuario ADMIN_GENERAL.",
+    "description": "Evidencia de cada ruta del AWS API Gateway. Antes de correr: pegar un access token valido en la variable 'token' (ver docs/api-gateway.md). Las carpetas 'RabbitMQ admin', 'Kafka admin' y auditoria requieren un usuario ADMIN_GENERAL.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -353,6 +353,391 @@
       ]
     },
     {
+      "name": "Kafka admin (ADMIN_GENERAL)",
+      "item": [
+        {
+          "name": "GET /api/kafka/cluster",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Cluster con 3 brokers', () => pm.expect(pm.response.json().brokers).to.have.length(3));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/kafka/cluster"
+          }
+        },
+        {
+          "name": "GET /api/kafka/topics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const t = pm.response.json();",
+                  "['pedidos-eventos', 'inventario-movimientos'].forEach(n => pm.test(n + ' con 3 particiones y 3 replicas', () => {",
+                  "  const topico = t.find(x => x.nombre === n);",
+                  "  pm.expect(topico.particiones).to.eql(3);",
+                  "  pm.expect(topico.replicas).to.eql(3);",
+                  "}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/kafka/topics"
+          }
+        },
+        {
+          "name": "GET /api/kafka/topics/{nombre}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "pm.test('Cada particion tiene lider y las 3 replicas sincronizadas (ISR)', () => d.particiones.forEach(p => {",
+                  "  pm.expect(p.lider).to.not.be.null;",
+                  "  pm.expect(p.isr).to.have.length(3);",
+                  "}));",
+                  "pm.test('Retencion por tiempo (cleanup.policy=delete)', () =>",
+                  "  pm.expect(d.configs.find(x => x.nombre === 'cleanup.policy').valor).to.eql('delete'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/kafka/topics/pedidos-eventos"
+          }
+        },
+        {
+          "name": "POST /api/kafka/topics (crear demo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Crea el topico con 201', () => pm.response.to.have.status(201));",
+                  "pm.test('3 particiones y 3 replicas', () => {",
+                  "  pm.expect(pm.response.json().particiones).to.eql(3);",
+                  "  pm.expect(pm.response.json().replicas).to.eql(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/kafka/topics",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"demo-postman\",\n  \"particiones\": 3,\n  \"replicas\": 3,\n  \"configs\": {\n    \"cleanup.policy\": \"delete\",\n    \"retention.ms\": \"86400000\",\n    \"min.insync.replicas\": \"2\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/kafka/topics/{nombre}/configs (retencion 1 h)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('retention.ms quedo en 1 hora', () =>",
+                  "  pm.expect(pm.response.json().configs.find(x => x.nombre === 'retention.ms').valor).to.eql('3600000'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/kafka/topics/demo-postman/configs",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"configs\": {\n    \"retention.ms\": \"3600000\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/kafka/topics/{nombre}/particiones (3 -> 6)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ahora tiene 6 particiones', () => pm.expect(pm.response.json().particiones).to.eql(6));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/kafka/topics/demo-postman/particiones",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"total\": 6\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /api/kafka/consumer-groups",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ids = pm.response.json().map(g => g.groupId);",
+                  "pm.test('Estan los dos grupos de consumidores', () => pm.expect(ids).to.include.members(['grupo-reporteria', 'grupo-auditoria']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/kafka/consumer-groups"
+          }
+        },
+        {
+          "name": "GET /api/kafka/consumer-groups/{groupId} (offsets y lag)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const g = pm.response.json();",
+                  "pm.test('Muestra offset y lag de cada particion', () => {",
+                  "  pm.expect(g.offsets.length).to.be.above(0);",
+                  "  pm.expect(g.lagTotal).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/kafka/consumer-groups/grupo-auditoria"
+          }
+        },
+        {
+          "name": "Validacion: 5 replicas -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Rechaza con 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Explica el error del campo', () => pm.expect(pm.response.json().errores.replicas).to.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/kafka/topics",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"demo-invalido\",\n  \"particiones\": 3,\n  \"replicas\": 5\n}"
+            }
+          }
+        },
+        {
+          "name": "Validacion: configuracion no permitida -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Rechaza con 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/kafka/topics/demo-postman/configs",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"configs\": {\n    \"compression.type\": \"gzip\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Validacion: reset de offsets con el grupo activo -> 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Kafka no deja mover offsets de un grupo con consumidores conectados', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/kafka/consumer-groups/grupo-reporteria/offsets",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topico\": \"pedidos-eventos\",\n  \"estrategia\": \"EARLIEST\"\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/kafka/topics/{nombre} (limpieza)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/kafka/topics/demo-postman"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Kafka consumidores: reportes y auditoria",
+      "item": [
+        {
+          "name": "GET /api/reportes/metricas (ADMIN_GENERAL / OPERADOR_COCINA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const m = pm.response.json();",
+                  "pm.test('Trae las metricas en tiempo real', () => {",
+                  "  pm.expect(m).to.have.property('totalPedidos');",
+                  "  pm.expect(m).to.have.property('pedidosPorEstado');",
+                  "  pm.expect(m.eventosProcesados).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/reportes/metricas"
+          }
+        },
+        {
+          "name": "GET /api/auditoria/eventos (ADMIN_GENERAL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const e = pm.response.json();",
+                  "pm.test('Lista de eventos auditados (max 20)', () => pm.expect(e).to.be.an('array').with.length.at.most(20));",
+                  "if (e.length) pm.test('Cada evento guarda quien, cuando y de que topico/offset viene', () => {",
+                  "  ['eventId', 'usuario', 'rol', 'topico'].forEach(k => pm.expect(e[0]).to.have.property(k));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auditoria/eventos?limite=20"
+          }
+        },
+        {
+          "name": "GET /api/auditoria/eventos?pedidoId= (historial de un pedido)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auditoria/eventos?pedidoId={{pedidoId}}"
+          }
+        },
+        {
+          "name": "Validacion: limite 500 -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Rechaza con 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auditoria/eventos?limite=500"
+          }
+        },
+        {
+          "name": "Validacion: pedidoId y productoId a la vez -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Rechaza con 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auditoria/eventos?pedidoId=1&productoId=1"
+          }
+        }
+      ]
+    },
+    {
       "name": "Seguridad",
       "item": [
         {
@@ -395,6 +780,48 @@
               "type": "noauth"
             },
             "url": "{{baseUrl}}/api/rabbitmq/topology?dominio=demo"
+          }
+        },
+        {
+          "name": "Sin token -> 401 (admin Kafka)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El Gateway responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/kafka/topics",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Sin token -> 401 (reportes)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('El Gateway responde 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/reportes/metricas",
+            "auth": {
+              "type": "noauth"
+            }
           }
         }
       ]
