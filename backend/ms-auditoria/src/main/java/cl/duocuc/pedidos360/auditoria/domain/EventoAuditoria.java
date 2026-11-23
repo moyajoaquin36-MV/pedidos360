@@ -74,7 +74,8 @@ public class EventoAuditoria {
     private Instant recibidoEn;
 
     @Lob
-    @Column(nullable = false)
+    // TEXT: un evento con varios items supera los 255 caracteres de un VARCHAR por defecto
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String payload;
 
     protected EventoAuditoria() {
