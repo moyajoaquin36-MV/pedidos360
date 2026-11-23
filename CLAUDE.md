@@ -1,6 +1,6 @@
 # Pedidos 360 — contexto para Claude Code
 
-Leer completo antes de hacer nada. Estado al 19-11-2026, rama de trabajo `parte3/kafka`.
+Leer completo antes de hacer nada. Estado al 22-11-2026, rama de trabajo `parte3/kafka`.
 
 ## Quien y para que
 - Proyecto de Joaquin Moya (Duoc UC, DSY1107 Desarrollo Cloud Native I). Sistema de pedidos para 20 panaderias/cafeterias.
@@ -37,7 +37,7 @@ Docs clave: `docs/kafka-contrato.md` (fuente de verdad de Kafka), `backend/READM
   autorregistro de Azure.
 
 ## AWS (Learner Lab, us-east-1) y Azure
-- EC2 `i-04e606b971be0fd3a` (t3.medium, **hay que pasarla a t3.large** por Kafka), IP elastica `174.129.161.62`,
+- EC2 `i-04e606b971be0fd3a` (t3.large desde el 22-11, por Kafka), IP elastica `174.129.161.62`,
   security group `sg-0782a8487bdcac91d`, Amazon Linux 2023, usuario `ec2-user`.
 - API Gateway HTTP `ng3zai38m7` (`https://ng3zai38m7.execute-api.us-east-1.amazonaws.com`), autorizador JWT `k345fo`
   (issuer `https://login.microsoftonline.com/0079c3b5-6d24-4e9a-ae29-879747fa5377/v2.0`, audience `69bfb4d4-1adf-46e5-933a-9e1c2be64a40`,
@@ -56,32 +56,32 @@ Docs clave: `docs/kafka-contrato.md` (fuente de verdad de Kafka), `backend/READM
   Desplegar = compilar los jars en el PC, `scp` de jars/compose/archivos y `docker compose ... up -d --build`.
   Hay respaldos `~/respaldo-parte1-*`.
 
-## Estado al 19-11-2026
-Hecho (rama `parte3/kafka`, NO desplegado, nada probado contra un Kafka real porque el PC no tiene Docker):
-contrato de eventos, compose Kafka 3 ZK + 3 brokers + Kafka UI, productores en ms-pedidos/ms-productos, ms-kafka-admin,
-ms-reportes, ms-auditoria, panel en tiempo real `/panel` en el frontend, script `backend/deploy/kafka-topicos.sh`.
-Partes 1 y 2 (Gateway, Azure, RabbitMQ) ya estan en `main` y desplegadas.
+## Estado al 22-11-2026
+Partes 1 y 2 (Gateway, Azure, RabbitMQ) en `main` y desplegadas. Parte 3 (Kafka) en `parte3/kafka`, **desplegada y probada en la EC2**:
+- 17 contenedores arriba (compose aws + kafka). EC2 en t3.large. SG con 8084-8086 abiertos y 8080 (Kafka UI) solo para la IP de Joaquin.
+- Topicos `pedidos-eventos` (delete, 7 dias) e `inventario-movimientos` (compact) + sus `.DLT`: 3 particiones x 3 replicas, ISR completo.
+- `grupo-reporteria` y `grupo-auditoria` asignados, lag 0. JSON invalido y evento invalido terminan en `.DLT` con `[ALERTA DLT]`
+  (los 2 ERROR que salen en los logs de ms-reportes del 23-11 00:52 UTC son esa prueba, no un bug).
+- Gateway: 12 rutas nuevas con JWT + scope (responden 401 sin token). Frontend nuevo con `/panel` copiado a `frontend-dist/`.
+- Bug corregido en el despliegue: `payload` de ms-auditoria era VARCHAR(255) en MySQL → `columnDefinition = "TEXT"` (commit 438475a)
+  y en la EC2 se hizo `ALTER TABLE ms_auditoria_db.evento_auditoria MODIFY payload TEXT NOT NULL`.
+- Joaquin probo con su usuario ADMIN_GENERAL: el panel muestra todo bien y auditoria guarda los cambios de estado.
+  Un pedido nuevo dio 409 "Stock insuficiente para Pan amasado": es real, `Pan amasado` de `local-01` (id 31) tiene stock 0
+  (reponer con `PATCH /api/productos/31/reposicion` antes de la demo). Por eso `inventario-movimientos` aun no tiene eventos.
 
 ## Pendiente, en orden
-1. **Desplegar** (pedir OK a Joaquin antes de cada cambio en AWS):
-   - Renovar credenciales AWS (Joaquin). Pasar la EC2 a **t3.large**: stop → `modify-instance-attribute --instance-type t3.large` → start (la IP elastica se mantiene).
-   - Joaquin abre en el SG: 8084-8086 desde 0.0.0.0/0 (el Gateway llega por IP publica, igual que 8081-8083) y 8080 (Kafka UI) solo para su IP.
-   - Subir a `~/pedidos360/`: `docker-compose.aws.yml`, `docker-compose.kafka.yml`, `deploy/kafka-topicos.sh`, `mysql-init/`, los 6 jars + Dockerfiles de los modulos nuevos.
-   - Crear `ms_auditoria_db` + GRANT a mano (el volumen MySQL ya existe; el comando esta comentado en `backend/mysql-init/01-crear-bases.sql`).
-   - `docker compose -f docker-compose.aws.yml -f docker-compose.kafka.yml --env-file .env up -d --build`; verificar con `deploy/kafka-topicos.sh describir`
-     que `pedidos-eventos` e `inventario-movimientos` quedaron con 3 particiones y 3 replicas (los crean los beans `NewTopic`; si no, `crear`).
-   - Gateway: rutas con JWT + scope para `/api/kafka/...` (10 endpoints de ms-kafka-admin), `GET /api/reportes/metricas` y `GET /api/auditoria/eventos`.
-   - Frontend: `npx ng build --configuration production` y copiar `frontend/dist/pedidos360-frontend/browser/*` a `~/pedidos360/frontend-dist/`.
-2. **Probar de punta a punta** y corregir: crear un pedido → aparece en el panel y en auditoria; Kafka UI (topicos 3x3, consumer groups, lag);
-   detener ms-auditoria, crear pedidos, ver crecer el lag y bajar al arrancarlo; mensaje invalido → `.DLT`.
-3. Postman: carpetas para ms-kafka-admin, reportes y auditoria (mismo estilo que la carpeta "RabbitMQ admin").
-4. Push + PR de `parte3/kafka` a `main` y merge.
-5. Guiar a Joaquin en las capturas que pide EP6 (ver abajo).
-6. PPT: agregar las diapositivas de Kafka a `Presentacion-Pedidos360.pptx` (Joaquin la tiene en su PC; NO va al repo porque es publico
+1. Reponer stock de Pan amasado (local-01) y crear un pedido completo: verificar `PEDIDO_CREADO` en panel/auditoria y `STOCK_DESCONTADO`
+   en `inventario-movimientos`. Demo de lag: `docker stop pedidos360-ms-auditoria-1`, crear pedidos, ver el lag en Kafka UI → Consumers,
+   `docker start` y ver que baja a 0.
+2. Postman: carpetas para ms-kafka-admin, reportes y auditoria (mismo estilo que la carpeta "RabbitMQ admin").
+3. PR de `parte3/kafka` a `main` y merge (pedir OK).
+4. Guiar a Joaquin en las capturas que pide EP6 (ver abajo).
+5. PPT: agregar las diapositivas de Kafka a `Presentacion-Pedidos360.pptx` (Joaquin la tiene en su PC; NO va al repo porque es publico
    y tiene correos). Mismo estilo: 16:9 13.333x7.5 in, Calibri, fondo blanco, colores `2B1A16` (espresso), `D9772B` (naranjo), `F2B632` (amarillo);
    kicker naranjo en mayusculas + titulo 30 pt; circulos naranjos numerados; capturas con borde; notas del orador en cada diapositiva.
    Se genero con python-pptx y se reviso exportando a PNG con PowerPoint (COM).
-7. Actualizar el prompt de estudio (para ChatGPT) con todo lo de Kafka.
+6. Actualizar el prompt de estudio (para ChatGPT) con todo lo de Kafka.
+7. Despues de la presentacion: cerrar en el SG las reglas 22 y 15672-15673 que quedaron en 0.0.0.0/0.
 
 ## Resumen de EP5 (codigo) y EP6 (presentacion)
 - EP5: config completa del cliente Kafka 12 · productores/consumidores con los 2 topicos y DTO 12 · admin crear/listar/mantener 6 ·
